@@ -39,6 +39,7 @@
     <modules>
         <module>dependencies</module>
         <module>frameworks</module>
+        <module>tests</module>
     </modules>
 
     <dependencies>
