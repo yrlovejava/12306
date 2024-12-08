@@ -1,9 +1,9 @@
 package com.squirrel.index12306.biz.userservice.service;
 
-import com.squirrel.index12306.biz.userservice.dto.UserLoginReqDTO;
-import com.squirrel.index12306.biz.userservice.dto.UserLoginRespDTO;
-import com.squirrel.index12306.biz.userservice.dto.UserRegisterReqDTO;
-import com.squirrel.index12306.biz.userservice.dto.UserRegisterRespDTO;
+import com.squirrel.index12306.biz.userservice.dto.req.UserLoginReqDTO;
+import com.squirrel.index12306.biz.userservice.dto.resp.UserLoginRespDTO;
+import com.squirrel.index12306.biz.userservice.dto.req.UserRegisterReqDTO;
+import com.squirrel.index12306.biz.userservice.dto.resp.UserRegisterRespDTO;
 
 /**
  * 用户登录接口

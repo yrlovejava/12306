@@ -2,7 +2,7 @@ package com.squirrel.index12306.biz.userservice.toolkit;
 
 import com.alibaba.fastjson2.JSON;
 import com.google.common.collect.Maps;
-import com.squirrel.index12306.biz.userservice.dto.UserLoginReqDTO;
+import com.squirrel.index12306.biz.userservice.dto.req.UserLoginReqDTO;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 

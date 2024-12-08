@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>user-service</module>
+        <module>ticket-service</module>
     </modules>
 
     <properties>
@@ -31,5 +32,12 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
     </dependencies>
 </project>
