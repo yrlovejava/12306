@@ -56,13 +56,13 @@ public class TrainStationRelationDO extends BaseDO {
      * 始发标识
      */
     @TableField("departure_flag")
-    private Integer departureFlag;
+    private Boolean departureFlag;
 
     /**
      * 终点标识
      */
     @TableField("arrival_flag")
-    private Integer arrivalFlag;
+    private Boolean arrivalFlag;
 
     /**
      * 出发时间

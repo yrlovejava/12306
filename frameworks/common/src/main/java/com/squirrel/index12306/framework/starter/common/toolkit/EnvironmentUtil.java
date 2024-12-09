@@ -22,7 +22,7 @@ public class EnvironmentUtil {
      * 判断当前是否为正式环境
      * @return 是否为正式环境
      */
-    public static boolean isProdEnvironment() {
+    public static boolean isDevEnvironment() {
         ConfigurableEnvironment configurableEnvironment = ApplicationContextHolder.getBean(ConfigurableEnvironment.class);
         String propertyActive = configurableEnvironment.getProperty("spring.profiles.active", "dev");
         return ENVIRONMENT_LIST.stream().noneMatch(propertyActive::contains);

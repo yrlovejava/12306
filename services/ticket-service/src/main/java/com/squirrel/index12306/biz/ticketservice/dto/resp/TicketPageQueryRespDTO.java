@@ -8,7 +8,7 @@ import lombok.Data;
 import java.util.Date;
 
 /**
- * 车票分页查询返回参数
+ * 车票分页查询响应参数
  */
 @Data
 @Schema(description = "车票分页查询返回参数")
@@ -24,14 +24,14 @@ public class TicketPageQueryRespDTO {
      * 出发时间
      */
     @Schema(description = "出发时间")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "GMT+8")
+    @JsonFormat(pattern = "HH:mm", timezone = "GMT+8")
     private Date departureTime;
 
     /**
      * 到达时间
      */
     @Schema(description = "到达时间")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "GMT+8")
+    @JsonFormat(pattern = "HH:mm", timezone = "GMT+8")
     private Date arrivalTime;
 
     /**
@@ -51,6 +51,18 @@ public class TicketPageQueryRespDTO {
      */
     @Schema(description = "到达站点")
     private String arrival;
+
+    /**
+     * 始发站标识
+     */
+    @Schema(description = "始发站标识")
+    private Boolean departureFlag;
+
+    /**
+     * 终点站标识
+     */
+    @Schema(description = "终点站标识")
+    private Boolean arrivalFlag;
 
     /**
      * 高铁属性

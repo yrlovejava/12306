@@ -6,6 +6,10 @@ import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.page.PageRequest;
 import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 /**
  * 分页工具类
  */
@@ -56,12 +60,32 @@ public class PageUtil {
     }
 
     /**
+     * {@link IPage} to {@link PageResponse}
+     */
+    public static <TARGET, ORIGINAL> PageResponse<TARGET> convert(IPage<ORIGINAL> iPage, Function<? super ORIGINAL, ? extends TARGET> mapper) {
+        List<TARGET> targetDataList = iPage.getRecords().stream()
+                .map(mapper)
+                .collect(Collectors.toList());
+        return PageResponse.<TARGET>builder()
+                .current(iPage.getCurrent())
+                .size(iPage.getSize())
+                .records(targetDataList)
+                .total(iPage.getTotal())
+                .build();
+    }
+
+    /**
      * {@link IPage} build to {@link PageRequest}
      *
      * @param iPage 分页参数
      * @return PageResponse
      */
     private static PageResponse buildConventionPage(IPage iPage) {
-        return PageResponse.builder().current(iPage.getCurrent()).size(iPage.getSize()).records(iPage.getRecords()).total(iPage.getTotal()).build();
+        return PageResponse.builder()
+                .current(iPage.getCurrent())
+                .size(iPage.getSize())
+                .records(iPage.getRecords())
+                .total(iPage.getTotal())
+                .build();
     }
 }

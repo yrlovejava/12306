@@ -1,9 +1,9 @@
 package com.squirrel.index12306.biz.ticketservice.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
+import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.web.Results;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,7 +29,7 @@ public class TicketController {
      */
     @GetMapping("/api/ticket-service/ticket/query")
     @Operation(summary = "根据条件查询车票")
-    public Result<IPage<TicketPageQueryRespDTO>> pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
+    public Result<PageResponse<TicketPageQueryRespDTO>> pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
         return Results.success(ticketService.pageListTicketQuery(requestParam));
     }
 }
