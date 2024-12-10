@@ -22,6 +22,8 @@
         <module>designpattern</module>
         <module>distributedid</module>
         <module>web</module>
+        <module>bizs</module>
+        <module>bizs/user</module>
     </modules>
 
     <properties>

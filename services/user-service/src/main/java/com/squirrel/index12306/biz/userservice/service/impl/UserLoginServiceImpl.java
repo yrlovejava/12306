@@ -11,11 +11,12 @@ import com.squirrel.index12306.biz.userservice.dto.resp.UserLoginRespDTO;
 import com.squirrel.index12306.biz.userservice.dto.req.UserRegisterReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.resp.UserRegisterRespDTO;
 import com.squirrel.index12306.biz.userservice.service.UserLoginService;
-import com.squirrel.index12306.biz.userservice.toolkit.JWTUtil;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
+import com.squirrel.index12306.frameworks.starter.user.core.UserInfoDTO;
+import com.squirrel.index12306.frameworks.starter.user.toolkit.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +45,12 @@ public class UserLoginServiceImpl implements UserLoginService {
                 .eq(UserDO::getPassword, requestParam.getPassword());
         UserDO userDO = userMapper.selectOne(queryWrapper);
         if (userDO != null) {
-            String accessToken = JWTUtil.generateAccessToken(requestParam);
+            UserInfoDTO userInfo = UserInfoDTO.builder()
+                    .userId(String.valueOf(userDO.getId()))
+                    .username(userDO.getUsername())
+                    .realName(userDO.getRealName())
+                    .build();
+            String accessToken = JWTUtil.generateAccessToken(userInfo);
             UserLoginRespDTO actual = new UserLoginRespDTO(requestParam.getUsernameOrMailOrPhone(), userDO.getRealName(), accessToken);
             distributedCache.put(accessToken, JSON.toJSONString(actual), 30, TimeUnit.MINUTES);
             return actual;
