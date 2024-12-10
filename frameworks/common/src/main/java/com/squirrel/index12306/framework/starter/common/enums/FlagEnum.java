@@ -6,12 +6,12 @@ package com.squirrel.index12306.framework.starter.common.enums;
 public enum FlagEnum {
 
     /**
-     * 正常状态
+     * FALSE
      */
     FALSE(0),
 
     /**
-     * 删除状态
+     * TRUE
      */
     TRUE(1);
 
