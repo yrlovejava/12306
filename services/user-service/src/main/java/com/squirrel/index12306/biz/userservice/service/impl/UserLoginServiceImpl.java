@@ -40,12 +40,12 @@ public class UserLoginServiceImpl implements UserLoginService {
     public UserLoginRespDTO login(UserLoginReqDTO requestParam) {
         // 1.构建查询条件
         LambdaQueryWrapper<UserDO> queryWrapper = Wrappers.<UserDO>lambdaQuery()
-                .eq(UserDO::getUsername, requestParam.getUsername())
+                .eq(UserDO::getUsername, requestParam.getUsernameOrMailOrPhone())
                 .eq(UserDO::getPassword, requestParam.getPassword());
         UserDO userDO = userMapper.selectOne(queryWrapper);
         if (userDO != null) {
             String accessToken = JWTUtil.generateAccessToken(requestParam);
-            UserLoginRespDTO actual = new UserLoginRespDTO(requestParam.getUsername(), userDO.getRealName(), accessToken);
+            UserLoginRespDTO actual = new UserLoginRespDTO(requestParam.getUsernameOrMailOrPhone(), userDO.getRealName(), accessToken);
             distributedCache.put(accessToken, JSON.toJSONString(actual), 30, TimeUnit.MINUTES);
             return actual;
         }

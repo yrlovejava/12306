@@ -15,10 +15,10 @@ import lombok.NoArgsConstructor;
 public class UserLoginReqDTO {
 
     /**
-     * 用户名
+     * 用户名or邮箱or手机号
      */
-    @Schema(description = "用户名")
-    private String username;
+    @Schema(description = "用户名or邮箱or手机号")
+    private String usernameOrMailOrPhone;
 
     /**
      * 密码

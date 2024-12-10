@@ -1,8 +1,10 @@
 package com.squirrel.index12306.biz.userservice.controller;
 
 import com.squirrel.index12306.biz.userservice.dto.req.UserRegisterReqDTO;
+import com.squirrel.index12306.biz.userservice.dto.resp.UserQueryRespDTO;
 import com.squirrel.index12306.biz.userservice.dto.resp.UserRegisterRespDTO;
 import com.squirrel.index12306.biz.userservice.service.UserLoginService;
+import com.squirrel.index12306.biz.userservice.service.UserService;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.web.Results;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +23,15 @@ import org.springframework.web.bind.annotation.*;
 public class UserInfoController {
 
     private final UserLoginService userLoginService;
+    private final UserService userService;
+
+    /**
+     * 根据用户名查询用户信息
+     */
+    @GetMapping("/api/user-service/query")
+    public Result<UserQueryRespDTO> queryUserByUsername(@RequestParam("username") @NotEmpty String username) {
+        return Results.success(userService.queryUserByUsername(username));
+    }
 
     /**
      * 检查用户名是否已存在
