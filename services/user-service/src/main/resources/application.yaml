@@ -16,6 +16,7 @@ spring:
     nacos:
       discovery:
         server-addr: 139.159.224.143:8848
+        namespace: 7abe7a43-cb4e-45f8-ad8c-05e7ee100a9d
 
 mybatis-plus:
   global-config:

@@ -5,13 +5,19 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.squirrel.index12306.framework.starter.database.base.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 座位实体
  */
 @Data
 @TableName("t_seat")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class SeatDO extends BaseDO {
 
     /**
@@ -57,7 +63,7 @@ public class SeatDO extends BaseDO {
     private String endStation;
 
     /**
-     * 座位状态
+     * 座位状态 0:可售 1:锁定 2:已售
      */
     @TableField("seat_status")
     private Integer seatStatus;

@@ -51,7 +51,7 @@ public class TicketDO extends BaseDO {
     private String passengerId;
 
     /**
-     * 车票状态
+     * 车票状态 0:未支付 1:已支付 2:改签 3:退票
      */
     @TableField("ticket_status")
     private Integer ticketStatus;
