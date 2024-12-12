@@ -30,9 +30,24 @@ public class PassengerServiceImpl implements PassengerService {
      * @return 乘车人返回列表
      */
     @Override
-    public List<PassengerRespDTO> listPassengerQuery(String username) {
+    public List<PassengerRespDTO> listPassengerQueryByUsername(String username) {
         List<PassengerDO> passengerDOList = passengerMapper.selectList(Wrappers.lambdaQuery(PassengerDO.class)
                 .eq(PassengerDO::getUsername, username));
+        return BeanUtil.convert(passengerDOList, PassengerRespDTO.class);
+    }
+
+    /**
+     * 根据乘车人 ID 集合查询乘车人列表
+     *
+     * @param username 用户名
+     * @param ids      乘车人 ID 集合
+     * @return 乘车人返回列表
+     */
+    @Override
+    public List<PassengerRespDTO> listPassengerQueryByIds(String username, List<Long> ids) {
+        List<PassengerDO> passengerDOList = passengerMapper.selectList(Wrappers.lambdaQuery(PassengerDO.class)
+                .eq(PassengerDO::getUsername, username)
+                .in(PassengerDO::getId, ids));
         return BeanUtil.convert(passengerDOList, PassengerRespDTO.class);
     }
 
