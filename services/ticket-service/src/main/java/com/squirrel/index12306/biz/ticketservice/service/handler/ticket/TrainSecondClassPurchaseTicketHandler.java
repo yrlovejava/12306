@@ -1,7 +1,7 @@
 package com.squirrel.index12306.biz.ticketservice.service.handler.ticket;
 
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.VehicleSeatTypeEnum;
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.VehicleTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.AbstractTrainPurchaseTicketTemplate;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;

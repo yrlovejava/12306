@@ -5,9 +5,10 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.TicketStatusEnum;
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.VehicleSeatTypeEnum;
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.VehicleTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.SourceEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.TicketStatusEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TicketDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationPriceDO;
@@ -205,6 +206,7 @@ public class TicketServiceImpl implements TicketService {
                     .departure(requestParam.getDeparture())
                     .arrival(requestParam.getArrival())
                     .orderTime(new Date())
+                    .source(SourceEnum.INTERNET.getCode())
                     // TODO 创建用户上下文
                     .username(MDC.get(UserConstant.USER_NAME_KEY))
                     .trainId(Long.parseLong(requestParam.getTrainId()))

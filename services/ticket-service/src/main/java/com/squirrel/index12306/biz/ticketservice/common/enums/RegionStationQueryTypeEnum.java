@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.ticketservice.common.constant.enums;
+package com.squirrel.index12306.biz.ticketservice.common.enums;
 
 import cn.hutool.core.collection.ListUtil;
 import lombok.Getter;

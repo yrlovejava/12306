@@ -4,7 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.SeatStatusEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
 import com.squirrel.index12306.biz.ticketservice.service.SeatService;

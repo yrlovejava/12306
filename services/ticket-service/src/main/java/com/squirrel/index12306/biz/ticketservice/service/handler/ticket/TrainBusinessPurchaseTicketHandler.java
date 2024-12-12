@@ -1,7 +1,7 @@
 package com.squirrel.index12306.biz.ticketservice.service.handler.ticket;
 
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.VehicleSeatTypeEnum;
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.VehicleTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.PassengerInfoDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.CarriageService;
@@ -55,8 +55,8 @@ public class TrainBusinessPurchaseTicketHandler extends AbstractTrainPurchaseTic
                     result.setPassengerInfo(new PassengerInfoDTO().setPassengerId(passengerIds.get(j)));
                     actualResult.add(result);
                 }
+                break;
             }
-            break;
         }
         // TODO 如果一个车厢不满足乘客人数，需要进行拆分
         // TODO 扣减车厢余票缓存，扣减站点余票缓存

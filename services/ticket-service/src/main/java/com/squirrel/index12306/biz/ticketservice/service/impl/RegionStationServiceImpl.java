@@ -3,7 +3,7 @@ package com.squirrel.index12306.biz.ticketservice.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.common.constant.enums.RegionStationQueryTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.RegionStationQueryTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.RegionDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.StationDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.RegionMapper;
