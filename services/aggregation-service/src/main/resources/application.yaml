@@ -17,6 +17,8 @@ spring:
       discovery:
         server-addr: 139.159.224.143:8848
         namespace: 7abe7a43-cb4e-45f8-ad8c-05e7ee100a9d
+  main:
+    allow-bean-definition-overriding: true
 
 mybatis-plus:
   global-config:
@@ -26,6 +28,9 @@ mybatis-plus:
       logic-not-delete-value: 0
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+aggregation:
+  remote-url: http://127.0.0.1:${server.port}
 
 framework:
   fastjson:
