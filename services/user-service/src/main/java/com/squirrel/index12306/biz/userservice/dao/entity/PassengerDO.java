@@ -5,12 +5,21 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.squirrel.index12306.framework.starter.database.base.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
+/**
+ * 乘车人数据库实体
+ */
 @Data
 @TableName("t_passenger")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PassengerDO extends BaseDO {
 
     /**

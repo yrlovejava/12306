@@ -3,12 +3,8 @@ package com.squirrel.index12306.biz.ticketservice.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.common.enums.SourceEnum;
-import com.squirrel.index12306.biz.ticketservice.common.enums.TicketStatusEnum;
-import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum;
-import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.*;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TicketDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationPriceDO;
@@ -17,8 +13,7 @@ import com.squirrel.index12306.biz.ticketservice.dao.mapper.TicketMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationPriceMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationRelationMapper;
-import com.squirrel.index12306.biz.ticketservice.dto.domain.BulletTrainDTO;
-import com.squirrel.index12306.biz.ticketservice.dto.domain.PassengerInfoDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.domain.*;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
@@ -31,9 +26,7 @@ import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
 import com.squirrel.index12306.framework.starter.bases.constant.UserConstant;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
-import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
-import com.squirrel.index12306.framework.starter.database.toolkit.PageUtil;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -42,11 +35,9 @@ import org.slf4j.MDC;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.squirrel.index12306.biz.ticketservice.common.constant.Index12306Constant.ADVANCE_TICKET_DAY;
 import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_INFO;
@@ -74,19 +65,22 @@ public class TicketServiceImpl implements TicketService {
      * @return Result<IPage<TicketPageQueryRespDTO>>
      */
     @Override
-    public PageResponse<TicketPageQueryRespDTO> pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
+    public TicketPageQueryRespDTO pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
         // TODO 责任链模式 验证城市名称是否存在、不存在加载缓存等等
         // 通过mybatis-plus分页查询
         LambdaQueryWrapper<TrainStationRelationDO> queryWrapper = Wrappers.<TrainStationRelationDO>lambdaQuery()
                 .eq(TrainStationRelationDO::getStartRegion, requestParam.getFromStation())
                 .eq(TrainStationRelationDO::getEndRegion, requestParam.getToStation());
-        IPage<TrainStationRelationDO> trainStationRelationPage = trainStationRelationMapper.selectPage(PageUtil.convert(requestParam), queryWrapper);
-        return PageUtil.convert(trainStationRelationPage,each -> {
+        List<TrainStationRelationDO> trainStationRelationList = trainStationRelationMapper.selectList(queryWrapper);
+        // 车次信息集合
+        List<TicketListDTO> seatResults = new ArrayList<>();
+        List<String> trainBrandList = new ArrayList<>();
+        for (TrainStationRelationDO each : trainStationRelationList) {
             // 查询列车信息
             TrainDO trainDO = trainMapper.selectOne(Wrappers.<TrainDO>lambdaQuery()
                     .eq(TrainDO::getId, each.getTrainId()));
             // 封装返回 DTO
-            TicketPageQueryRespDTO result = new TicketPageQueryRespDTO();
+            TicketListDTO result = new TicketListDTO();
             result.setTrainNumber(trainDO.getTrainNumber()); // 车次
             result.setDepartureTime(each.getDepartureTime()); // 出发时间
             result.setArrivalTime(each.getArrivalTime()); // 到达时间
@@ -95,57 +89,114 @@ public class TicketServiceImpl implements TicketService {
             result.setArrival(each.getArrival()); // 到达站
             result.setDepartureFlag(each.getDepartureFlag());// 出发标识
             result.setArrivalFlag(each.getArrivalFlag()); // 到达标识
-            // 如果trainType 等于 0，也就是列车为高铁
-            if (Objects.equals(trainDO.getTrainType(),0)){
-                BulletTrainDTO bulletTrainDTO = new BulletTrainDTO();
+            if (StrUtil.isNotBlank(trainDO.getTrainBrand())) {
+                trainBrandList.addAll(TrainTagEnum.findNameByCode(StrUtil.split(trainDO.getTrainBrand(), ",")));
+            }
+            // 如果trainType 等于 0，也就是列车为动车
+            if (Objects.equals(trainDO.getTrainType(), 0)) {
+                HighSpeedTrainDTO highSpeedTrainDTO = new HighSpeedTrainDTO();
                 // 构建查询条件
                 LambdaQueryWrapper<TrainStationPriceDO> trainStationPriceQueryWrapper = Wrappers.lambdaQuery(TrainStationPriceDO.class)
                         .eq(TrainStationPriceDO::getDeparture, each.getDeparture())// 出发站一样
                         .eq(TrainStationPriceDO::getArrival, each.getArrival())// 到达站一样
                         .eq(TrainStationPriceDO::getTrainId, each.getTrainId());// 列车id也一样
-                // 查询高铁座位票价
+                // 查询动车座位票价
                 List<TrainStationPriceDO> trainStationPriceDOList = trainStationPriceMapper.selectList(trainStationPriceQueryWrapper);
                 StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
-                // 设置高铁座位票价
+                // 设置动车座位票价
                 trainStationPriceDOList.forEach(item -> {
                     // Redis中车票数量key: KeyPrefix + 列车ID_起始站点_终点
-                    String keySuffix = StrUtil.join("_",each.getTrainId(),item.getDeparture(),item.getArrival());
+                    String keySuffix = StrUtil.join("_", each.getTrainId(), item.getDeparture(), item.getArrival());
                     switch (item.getSeatType()) {
                         case 0:
                             // 获取商务座票数量
                             String businessClassQuantity = (String) stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, "0");
                             // 设置商务座数量
-                            bulletTrainDTO.setBusinessClassQuantity(Integer.parseInt(businessClassQuantity));
-                            bulletTrainDTO.setBusinessClassPrice(item.getPrice());
+                            highSpeedTrainDTO.setBusinessClassQuantity(Integer.parseInt(businessClassQuantity));
+                            highSpeedTrainDTO.setBusinessClassPrice(item.getPrice());
                             // TODO 候补逻辑后续补充
-                            bulletTrainDTO.setBusinessClassCandidate(false);
+                            highSpeedTrainDTO.setBusinessClassCandidate(false);
                             break;
                         case 1:
                             // 获取一等座票数量
                             String firstClassQuantity = (String) stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, "1");
                             // 设置一等座票数量
-                            bulletTrainDTO.setFirstClassQuantity(Integer.parseInt(firstClassQuantity));
-                            bulletTrainDTO.setFirstClassPrice(item.getPrice());
+                            highSpeedTrainDTO.setFirstClassQuantity(Integer.parseInt(firstClassQuantity));
+                            highSpeedTrainDTO.setFirstClassPrice(item.getPrice());
                             // TODO 候补逻辑后续补充
-                            bulletTrainDTO.setBusinessClassCandidate(false);
+                            highSpeedTrainDTO.setBusinessClassCandidate(false);
                             break;
                         case 2:
                             // 获取一等座票数量
                             String secondClassQuantity = (String) stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, "2");
                             // 设置一等座票数量
-                            bulletTrainDTO.setFirstClassQuantity(Integer.parseInt(secondClassQuantity));
-                            bulletTrainDTO.setSecondClassPrice(item.getPrice());
+                            highSpeedTrainDTO.setFirstClassQuantity(Integer.parseInt(secondClassQuantity));
+                            highSpeedTrainDTO.setSecondClassPrice(item.getPrice());
                             // TODO 候补逻辑后续补充
-                            bulletTrainDTO.setBusinessClassCandidate(false);
+                            highSpeedTrainDTO.setBusinessClassCandidate(false);
                             break;
                         default:
                             break;
                     }
                 });
-                result.setBulletTrain(bulletTrainDTO);
+                result.setHighSpeedTrain(highSpeedTrainDTO);
+                seatResults.add(result);
             }
-            return result;
-        });
+        }
+        return TicketPageQueryRespDTO.builder()
+                .trainList(seatResults)
+                .departureStationList(buildDepartureStationList(seatResults))
+                .arrivalStationList(buildArrivalStationList(seatResults))
+                .trainBrandList(trainBrandList)
+                .seatClassList(buildSeatClassList(seatResults))
+                .build();
+    }
+
+    /**
+     * 获取列车车次信息中的出发站
+     * @param seatResults 车次信息集合
+     * @return 出发站集合
+     */
+    private List<String> buildDepartureStationList(List<TicketListDTO> seatResults) {
+        return seatResults.stream().map(TicketListDTO::getDeparture).distinct().collect(Collectors.toList());
+    }
+
+    /**
+     * 获取列车车次信息中的到达站
+     * @param seatResults 车次信息集合
+     * @return 到达站集合
+     */
+    private List<String> buildArrivalStationList(List<TicketListDTO> seatResults) {
+        return seatResults.stream().map(TicketListDTO::getArrival).distinct().collect(Collectors.toList());
+    }
+
+    /**
+     * 获取列车车次信息中的座位类型
+     * @param seatResults 车次信息集合
+     * @return 座位类型集合
+     */
+    private List<String> buildSeatClassList(List<TicketListDTO> seatResults) {
+        Set<String> resultSeatClassList = new HashSet<>();
+        for (TicketListDTO each : seatResults) {
+            // 动车座位类型
+            HighSpeedTrainDTO highSpeedTrain = each.getHighSpeedTrain();
+            Optional.ofNullable(highSpeedTrain.getBusinessClassPrice()).ifPresent(item -> resultSeatClassList.add("商务座"));
+            Optional.ofNullable(highSpeedTrain.getFirstClassPrice()).ifPresent(item -> resultSeatClassList.add("一等座"));
+            Optional.ofNullable(highSpeedTrain.getSecondClassQuantity()).ifPresent(item -> resultSeatClassList.add("二等座"));
+            // 高铁座位类型
+            BulletTrainDTO bulletTrain = each.getBulletTrain();
+            Optional.ofNullable(bulletTrain.getSleeperPrice()).ifPresent(item -> resultSeatClassList.add("动卧"));
+            Optional.ofNullable(bulletTrain.getFirstSleeperCandidate()).ifPresent(item -> resultSeatClassList.add("一等卧"));
+            Optional.ofNullable(bulletTrain.getSecondSleeperPrice()).ifPresent(item -> resultSeatClassList.add("二等卧"));
+            Optional.ofNullable(bulletTrain.getSecondClassPrice()).ifPresent(item -> resultSeatClassList.add("二等座"));
+            // 普通车座位类型
+            RegularTrainDTO regularTrain = each.getRegularTrain();
+            Optional.ofNullable(regularTrain.getSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add("软卧"));
+            Optional.ofNullable(regularTrain.getDeluxeSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add("高级软卧"));
+            Optional.ofNullable(regularTrain.getHardSeatPrice()).ifPresent(item -> resultSeatClassList.add("硬座"));
+            Optional.ofNullable(regularTrain.getHardSleeperPrice()).ifPresent(item -> resultSeatClassList.add("硬卧"));
+        }
+        return resultSeatClassList.stream().toList();
     }
 
     /**

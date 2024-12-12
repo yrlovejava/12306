@@ -1,72 +1,53 @@
 package com.squirrel.index12306.biz.ticketservice.dto.resp;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.squirrel.index12306.biz.ticketservice.dto.domain.BulletTrainDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.domain.TicketListDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 车票分页查询响应参数
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "车票分页查询返回参数")
 public class TicketPageQueryRespDTO {
 
     /**
-     * 车次
+     * 车次集合数据
      */
-    @Schema(description = "车次")
-    private String trainNumber;
+    @Schema(description = "车次集合数据")
+    private List<TicketListDTO> trainList;
 
     /**
-     * 出发时间
+     * 车次类型: D-动车 Z-直达 复兴号等
      */
-    @Schema(description = "出发时间")
-    @JsonFormat(pattern = "HH:mm", timezone = "GMT+8")
-    private Date departureTime;
+    @Schema(description = "车次类型: D-动车 Z-直达 复兴号等")
+    private List<String> trainBrandList;
 
     /**
-     * 到达时间
+     * 出发车站
      */
-    @Schema(description = "到达时间")
-    @JsonFormat(pattern = "HH:mm", timezone = "GMT+8")
-    private Date arrivalTime;
+    @Schema(description = "出发车站")
+    private List<String> departureStationList;
 
     /**
-     * 历时
+     * 到达车站
      */
-    @Schema(description = "历时")
-    private String duration;
+    @Schema(description = "到达车站")
+    private List<String> arrivalStationList;
 
     /**
-     * 出发站点
+     * 车次席别
      */
-    @Schema(description = "出发站点")
-    private String departure;
-
-    /**
-     * 到达站点
-     */
-    @Schema(description = "到达站点")
-    private String arrival;
-
-    /**
-     * 始发站标识
-     */
-    @Schema(description = "始发站标识")
-    private Boolean departureFlag;
-
-    /**
-     * 终点站标识
-     */
-    @Schema(description = "终点站标识")
-    private Boolean arrivalFlag;
-
-    /**
-     * 高铁属性
-     */
-    @Schema(description = "高铁属性")
-    private BulletTrainDTO bulletTrain;
+    @Schema(description = "车次席别")
+    private List<String> seatClassList;
 }

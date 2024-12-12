@@ -17,7 +17,7 @@ public interface TicketService {
      * @param requestParam 分页查询车票请求参数
      * @return 查询车票返回结果
      */
-    PageResponse<TicketPageQueryRespDTO> pageListTicketQuery(TicketPageQueryReqDTO requestParam);
+    TicketPageQueryRespDTO pageListTicketQuery(TicketPageQueryReqDTO requestParam);
 
     /**
      * 购买车票

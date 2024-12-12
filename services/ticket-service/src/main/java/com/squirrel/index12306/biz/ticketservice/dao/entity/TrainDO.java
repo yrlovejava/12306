@@ -47,7 +47,7 @@ public class TrainDO extends BaseDO {
     private String trainTag;
 
     /**
-     * 列车品牌 0：GC-高铁/城际 1：D-动车 2：Z-直达 3：T-特快 4：K-快速 5：其他 6：复兴号 7：智能动车组
+     * 列车标签 0：GC-高铁/城际 1：D-动车 2：Z-直达 3：T-特快 4：K-快速 5：其他 6：复兴号 7：智能动车组
      */
     @TableField("train_brand")
     private String trainBrand;

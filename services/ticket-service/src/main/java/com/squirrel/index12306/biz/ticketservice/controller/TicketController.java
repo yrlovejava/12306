@@ -32,7 +32,7 @@ public class TicketController {
      */
     @GetMapping("/api/ticket-service/ticket/query")
     @Operation(summary = "根据条件查询车票")
-    public Result<PageResponse<TicketPageQueryRespDTO>> pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
+    public Result<TicketPageQueryRespDTO> pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
         return Results.success(ticketService.pageListTicketQuery(requestParam));
     }
 

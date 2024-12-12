@@ -1,5 +1,6 @@
 package com.squirrel.index12306.biz.userservice.service;
 
+import com.squirrel.index12306.biz.userservice.dto.req.PassengerRemoveReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.req.PassengerReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.resp.PassengerRespDTO;
 
@@ -40,4 +41,11 @@ public interface PassengerService {
      * @param requestParam 乘车人信息
      */
     void updatePassenger(PassengerReqDTO requestParam);
+
+    /**
+     * 移除乘车人
+     *
+     * @param requestParam 移除乘车人信息
+     */
+    void removePassenger(PassengerRemoveReqDTO requestParam);
 }
