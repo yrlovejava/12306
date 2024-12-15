@@ -17,6 +17,7 @@ import com.squirrel.index12306.biz.ticketservice.dto.domain.*;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPurchaseRespDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.TicketOrderRemoteService;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreateRemoteReqDTO;
@@ -206,7 +207,7 @@ public class TicketServiceImpl implements TicketService {
      * @return 订单号
      */
     @Override
-    public String purchaseTickets(PurchaseTicketReqDTO requestParam) {
+    public TicketPurchaseRespDTO purchaseTickets(PurchaseTicketReqDTO requestParam) {
         String trainId = requestParam.getTrainId();
         // 在 redis 中查询列车信息
         TrainDO trainDO = distributedCache.get(
@@ -275,6 +276,6 @@ public class TicketServiceImpl implements TicketService {
             // TODO 回退锁定车票
             throw new ServiceException(ticketOrderResult.getMessage());
         }
-        return ticketOrderResult.getData();
+        return new TicketPurchaseRespDTO(ticketOrderResult.getData());
     }
 }

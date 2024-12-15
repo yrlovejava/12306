@@ -3,6 +3,7 @@ package com.squirrel.index12306.biz.ticketservice.controller;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPurchaseRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
 import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
@@ -42,7 +43,7 @@ public class TicketController {
      */
     @Operation(description = "购买车票")
     @PostMapping("/api/ticket-service/ticket/purchase")
-    public Result<String> purchaseTickets(@RequestBody PurchaseTicketReqDTO requestParam) {
+    public Result<TicketPurchaseRespDTO> purchaseTickets(@RequestBody PurchaseTicketReqDTO requestParam) {
         return Results.success(ticketService.purchaseTickets(requestParam));
     }
 }
