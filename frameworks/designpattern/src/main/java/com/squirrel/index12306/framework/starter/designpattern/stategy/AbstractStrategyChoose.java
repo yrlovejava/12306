@@ -54,6 +54,10 @@ public class AbstractStrategyChoose implements ApplicationListener<ApplicationIn
         return (RESPONSE) executeStrategy.executeResp(requestParam);
     }
 
+    /**
+     * 实现策略注册
+     * @param event 监听Spring应用启动事件
+     */
     @Override
     public void onApplicationEvent(ApplicationInitializingEvent event) {
         Map<String, AbstractExecuteStrategy> actual = ApplicationContextHolder.getBeansOfType(AbstractExecuteStrategy.class);
