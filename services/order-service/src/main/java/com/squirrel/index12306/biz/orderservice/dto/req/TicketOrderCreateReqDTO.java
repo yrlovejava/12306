@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.orderservice.dto;
+package com.squirrel.index12306.biz.orderservice.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

@@ -1,6 +1,6 @@
 package com.squirrel.index12306.biz.orderservice.controller;
 
-import com.squirrel.index12306.biz.orderservice.dto.TicketOrderCreateReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
 import com.squirrel.index12306.biz.orderservice.service.OrderService;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.web.Results;
@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -23,10 +24,35 @@ public class TicketOrderController {
 
     /**
      * 车票订单创建
+     * @param requestParam 订单创建参数
+     * @return Result<String> 订单号
      */
     @Operation(summary = "车票订单创建")
     @PostMapping("/api/order-service/order/ticket/create")
     public Result<String> createTicketOrder(@RequestBody TicketOrderCreateReqDTO requestParam) {
         return Results.success(orderService.createTicketOrder(requestParam));
+    }
+
+    /**
+     * 车票订单关闭
+     * @param orderSn 订单号
+     * @return Result<Void>
+     */
+    @Operation(summary = "车票订单关闭")
+    @PostMapping("/api/order-service/order/ticket/close")
+    public Result<Void> closeTickOrder(@RequestParam("orderSn") String orderSn) {
+        orderService.closeTickOrder(orderSn);
+        return Results.success();
+    }
+
+    /**
+     * 车票订单取消
+     * @param orderSn 订单号
+     * @return  Result<Void>
+     */
+    @PostMapping("/api/order-service/order/ticket/cancel")
+    public Result<Void> cancelTickOrder(@RequestParam("orderSn") String orderSn) {
+        orderService.cancelTickOrder(orderSn);
+        return Results.success();
     }
 }
