@@ -1,5 +1,7 @@
 package com.squirrel.index12306.biz.ticketservice.service.handler.ticket;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.PassengerInfoDTO;
@@ -10,10 +12,13 @@ import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.Abs
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_STATION_REMAINING_TICKET;
 
 /**
  * 高铁商务座购票组件
@@ -60,6 +65,13 @@ public class TrainBusinessPurchaseTicketHandler extends AbstractTrainPurchaseTic
         }
         // TODO 如果一个车厢不满足乘客人数，需要进行拆分
         // TODO 扣减车厢余票缓存，扣减站点余票缓存
+        if(CollUtil.isNotEmpty(actualResult)){
+            // 获取key后缀 列车ID_出发站_到达站
+            String keySuffix = StrUtil.join("_", requestParam.getTrainId(), requestParam.getDeparture(), requestParam.getArrival());
+            // 在Redis中扣除该车次对应座位类型的余票
+            StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
+            stringRedisTemplate.opsForHash().increment(TRAIN_STATION_REMAINING_TICKET + keySuffix,String.valueOf(requestParam.getSeatType()),-passengerIds.size());
+        }
         return actualResult;
     }
 
