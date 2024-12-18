@@ -13,10 +13,5 @@ public class Config {
     /**
      * 黑名单前置路径
      */
-    private List<String> blackPathPreList;
-
-    /**
-     * 白名单路径
-     */
-    private List<String> whitePathList;
+    private List<String> blackPathPre;
 }

@@ -35,34 +35,27 @@ public class TokenValidateGatewayFilterFactory extends AbstractGatewayFilterFact
         return ((exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
             String requestPath = request.getPath().toString();
-            // 如果不在白名单中
-            if(!isPathInWhiteList(requestPath,config.getWhitePathList())) {
-                // 如果在黑名单中
-                if (isPathInBlackPreList(requestPath, config.getBlackPathPreList())) {
-                    // 如果合法
-                    // 获取Token
-                    String token = request.getHeaders().getFirst("Authorization");
-                    UserInfoDTO userInfo = JWTUtil.parseJwtToken(token);
-                    // 如果userInfo不合法
-                    if (!validateToken(userInfo)) {
-                        // 直接报错401
-                        ServerHttpResponse response = exchange.getResponse();
-                        response.setStatusCode(HttpStatus.UNAUTHORIZED);
-                        return response.setComplete();
-                    }
-
-                    // 向请求头中添加用户基本信息
-                    ServerHttpRequest.Builder builder = exchange.getRequest().mutate().headers(httpHeaders -> {
-                        httpHeaders.set(UserConstant.USER_ID_KEY, userInfo.getUserId());
-                        httpHeaders.set(UserConstant.USER_NAME_KEY, userInfo.getUsername());
-                        httpHeaders.set(UserConstant.REAL_NAME_KEY, URLEncoder.encode(userInfo.getRealName(), StandardCharsets.UTF_8));
-                        // 判断是否是注销请求
-                        if (Objects.equals(requestPath, DELETION_PATH)) {
-                            httpHeaders.set(UserConstant.USER_TOKEN_KEY, token);
-                        }
-                    });
-                    return chain.filter(exchange.mutate().request(builder.build()).build());
+            // 如果在黑名单中
+            if (isPathInBlackPreList(requestPath, config.getBlackPathPre())) {
+                // 如果合法
+                // 获取Token
+                String token = request.getHeaders().getFirst("Authorization");
+                UserInfoDTO userInfo = JWTUtil.parseJwtToken(token);
+                // 如果userInfo不合法
+                if (!validateToken(userInfo)) {
+                    // 直接报错401
+                    ServerHttpResponse response = exchange.getResponse();
+                    response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                    return response.setComplete();
                 }
+
+                // 向请求头中添加用户基本信息
+                ServerHttpRequest.Builder builder = exchange.getRequest().mutate().headers(httpHeaders -> {
+                    httpHeaders.set(UserConstant.USER_ID_KEY, userInfo.getUserId());
+                    httpHeaders.set(UserConstant.USER_NAME_KEY, userInfo.getUsername());
+                    httpHeaders.set(UserConstant.REAL_NAME_KEY, userInfo.getRealName());
+                });
+                return chain.filter(exchange.mutate().request(builder.build()).build());
             }
             return chain.filter(exchange);
         });
@@ -79,19 +72,6 @@ public class TokenValidateGatewayFilterFactory extends AbstractGatewayFilterFact
             return false;
         }
         return blackPathPreList.stream().anyMatch(requestPath::startsWith);
-    }
-
-    /**
-     * 验证请求路径是否在白名单中
-     * @param requestPath 请求路径
-     * @param whitelist 白名单路径
-     * @return 是否在
-     */
-    private boolean isPathInWhiteList(String requestPath, List<String> whitelist) {
-        if (CollectionUtils.isEmpty(whitelist)) {
-            return false;
-        }
-        return whitelist.stream().anyMatch(requestPath::startsWith);
     }
 
     /**
