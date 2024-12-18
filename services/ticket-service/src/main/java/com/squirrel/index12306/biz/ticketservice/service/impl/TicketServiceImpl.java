@@ -75,7 +75,7 @@ public class TicketServiceImpl implements TicketService {
         List<TrainStationRelationDO> trainStationRelationList = trainStationRelationMapper.selectList(queryWrapper);
         // 车次信息集合
         List<TicketListDTO> seatResults = new ArrayList<>();
-        List<String> trainBrandList = new ArrayList<>();
+        Set<String> trainBrandSet = new HashSet<>();
         for (TrainStationRelationDO each : trainStationRelationList) {
             // 查询列车信息
             TrainDO trainDO = trainMapper.selectOne(Wrappers.<TrainDO>lambdaQuery()
@@ -91,7 +91,7 @@ public class TicketServiceImpl implements TicketService {
             result.setDepartureFlag(each.getDepartureFlag());// 出发标识
             result.setArrivalFlag(each.getArrivalFlag()); // 到达标识
             if (StrUtil.isNotBlank(trainDO.getTrainBrand())) {
-                trainBrandList.addAll(TrainTagEnum.findNameByCode(StrUtil.split(trainDO.getTrainBrand(), ",")));
+                trainBrandSet.addAll(TrainTagEnum.findNameByCode(StrUtil.split(trainDO.getTrainBrand(), ",")));
             }
             // 如果trainType 等于 0，也就是列车为动车
             if (Objects.equals(trainDO.getTrainType(), 0)) {
@@ -148,7 +148,7 @@ public class TicketServiceImpl implements TicketService {
                 .trainList(seatResults)
                 .departureStationList(buildDepartureStationList(seatResults))
                 .arrivalStationList(buildArrivalStationList(seatResults))
-                .trainBrandList(trainBrandList)
+                .trainBrandList(trainBrandSet.stream().toList())
                 .seatClassList(buildSeatClassList(seatResults))
                 .build();
     }
@@ -181,21 +181,21 @@ public class TicketServiceImpl implements TicketService {
         for (TicketListDTO each : seatResults) {
             // 动车座位类型
             HighSpeedTrainDTO highSpeedTrain = each.getHighSpeedTrain();
-            Optional.ofNullable(highSpeedTrain.getBusinessClassPrice()).ifPresent(item -> resultSeatClassList.add("商务座"));
-            Optional.ofNullable(highSpeedTrain.getFirstClassPrice()).ifPresent(item -> resultSeatClassList.add("一等座"));
-            Optional.ofNullable(highSpeedTrain.getSecondClassQuantity()).ifPresent(item -> resultSeatClassList.add("二等座"));
+            Optional.ofNullable(highSpeedTrain.getBusinessClassPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.BUSINESS_CLASS.getValue()));
+            Optional.ofNullable(highSpeedTrain.getFirstClassPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.FIRST_CLASS.getValue()));
+            Optional.ofNullable(highSpeedTrain.getSecondClassQuantity()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SECOND_CLASS.getValue()));
             // 高铁座位类型
             BulletTrainDTO bulletTrain = each.getBulletTrain();
-            Optional.ofNullable(bulletTrain.getSleeperPrice()).ifPresent(item -> resultSeatClassList.add("动卧"));
-            Optional.ofNullable(bulletTrain.getFirstSleeperCandidate()).ifPresent(item -> resultSeatClassList.add("一等卧"));
-            Optional.ofNullable(bulletTrain.getSecondSleeperPrice()).ifPresent(item -> resultSeatClassList.add("二等卧"));
-            Optional.ofNullable(bulletTrain.getSecondClassPrice()).ifPresent(item -> resultSeatClassList.add("二等座"));
+            Optional.ofNullable(bulletTrain.getSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(bulletTrain.getFirstSleeperCandidate()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.FIRST_SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(bulletTrain.getSecondSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SECOND_SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(bulletTrain.getSecondClassPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SLEEPER_CLASS.getValue()));
             // 普通车座位类型
             RegularTrainDTO regularTrain = each.getRegularTrain();
-            Optional.ofNullable(regularTrain.getSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add("软卧"));
-            Optional.ofNullable(regularTrain.getDeluxeSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add("高级软卧"));
-            Optional.ofNullable(regularTrain.getHardSeatPrice()).ifPresent(item -> resultSeatClassList.add("硬座"));
-            Optional.ofNullable(regularTrain.getHardSleeperPrice()).ifPresent(item -> resultSeatClassList.add("硬卧"));
+            Optional.ofNullable(regularTrain.getSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SOFT_SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(regularTrain.getDeluxeSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.DELUXE_SOFT_SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(regularTrain.getHardSeatPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.HARD_SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(regularTrain.getHardSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.HARD_SEAT_CLASS.getValue()));
         }
         return resultSeatClassList.stream().toList();
     }
