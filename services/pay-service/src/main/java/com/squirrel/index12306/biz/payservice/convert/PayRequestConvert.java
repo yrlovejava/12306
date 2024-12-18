@@ -1,6 +1,6 @@
 package com.squirrel.index12306.biz.payservice.convert;
 
-import com.squirrel.index12306.biz.payservice.common.PayChannelEnum;
+import com.squirrel.index12306.biz.payservice.common.enums.PayChannelEnum;
 import com.squirrel.index12306.biz.payservice.dto.PayCommand;
 import com.squirrel.index12306.biz.payservice.dto.base.AliPayRequest;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
@@ -21,7 +21,7 @@ public final class PayRequestConvert {
      */
     public static PayRequest command2PayRequest(PayCommand payCommand) {
         PayRequest payRequest = null;
-        if (Objects.equals(payCommand.getChannel(), PayChannelEnum.ALI_PAY.name())) {
+        if (Objects.equals(payCommand.getChannel(), PayChannelEnum.ALI_PAY.getCode())) {
             payRequest = BeanUtil.convert(payCommand, AliPayRequest.class);
         }
         return payRequest;

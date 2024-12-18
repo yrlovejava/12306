@@ -16,7 +16,7 @@ public final class PayCallbackCommand extends AbstractPayRequest {
     /**
      * 支付渠道
      */
-    private String channel;
+    private Integer channel;
 
     /**
      * 支付状态

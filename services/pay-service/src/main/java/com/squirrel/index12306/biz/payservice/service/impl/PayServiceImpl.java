@@ -2,13 +2,15 @@ package com.squirrel.index12306.biz.payservice.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.payservice.common.TradeStatusEnum;
+import com.squirrel.index12306.biz.payservice.common.enums.TradeStatusEnum;
 import com.squirrel.index12306.biz.payservice.dao.entity.PayDO;
 import com.squirrel.index12306.biz.payservice.dao.mapper.PayMapper;
 import com.squirrel.index12306.biz.payservice.dto.PayCallbackReqDTO;
 import com.squirrel.index12306.biz.payservice.dto.PayRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
 import com.squirrel.index12306.biz.payservice.dto.base.PayResponse;
+import com.squirrel.index12306.biz.payservice.mq.event.PayResultCallbackOrderEvent;
+import com.squirrel.index12306.biz.payservice.mq.producer.PayResultCallbackOrderSendProduce;
 import com.squirrel.index12306.biz.payservice.service.PayService;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
@@ -32,6 +34,7 @@ public class PayServiceImpl implements PayService {
 
     private final PayMapper payMapper;
     private final AbstractStrategyChoose abstractStrategyChoose;
+    private final PayResultCallbackOrderSendProduce payResultCallbackOrderSendProduce;
 
     /**
      * 创建支付单
@@ -51,7 +54,7 @@ public class PayServiceImpl implements PayService {
         // 转换为支付单实体
         PayDO insertPay = BeanUtil.convert(result, PayDO.class);
         // 设置支付单状态为等待付款
-        insertPay.setStatus(TradeStatusEnum.WAIT_BUYER_PAY.name());
+        insertPay.setStatus(TradeStatusEnum.WAIT_BUYER_PAY.tradeCode());
         // 计算精确的金额
         insertPay.setTotalAmount(requestParam.getTotalAmount().multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).intValue());
         // 插入数据库
@@ -94,9 +97,8 @@ public class PayServiceImpl implements PayService {
             throw new ServiceException("修改支付单支付结果失败");
         }
         // 交易成功，回调订单服务告知支付结果，修改订单流转状态
-        if(Objects.equals(requestParam.getStatus(),TradeStatusEnum.TRADE_SUCCESS)){
-            // TODO 发送订单回调消息
-
+        if(Objects.equals(requestParam.getStatus(),TradeStatusEnum.TRADE_SUCCESS.tradeCode())){
+            payResultCallbackOrderSendProduce.sendMessage(BeanUtil.convert(payDO, PayResultCallbackOrderEvent.class));
         }
     }
 }

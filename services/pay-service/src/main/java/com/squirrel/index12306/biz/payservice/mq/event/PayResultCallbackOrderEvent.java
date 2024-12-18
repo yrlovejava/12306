@@ -1,20 +1,24 @@
-package com.squirrel.index12306.biz.payservice.dto;
+package com.squirrel.index12306.biz.payservice.mq.event;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 支付单回调请求参数
+ * 支付结果回调订单订单服务事件
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class PayCallbackReqDTO {
+public final class PayResultCallbackOrderEvent {
+
+    /**
+     * id
+     */
+    private Long id;
 
     /**
      * 订单号
@@ -47,9 +51,15 @@ public class PayCallbackReqDTO {
     private String tradeNo;
 
     /**
+     * 商户订单号
+     * 由商家自定义，64个字符以内，仅支持字母、数字、下划线且需保证在商户端不重复
+     */
+    private String orderRequestId;
+
+    /**
      * 交易总金额
      */
-    private Integer totalAmount;
+    private BigDecimal totalAmount;
 
     /**
      * 付款时间
@@ -59,15 +69,10 @@ public class PayCallbackReqDTO {
     /**
      * 支付金额
      */
-    private Integer payAmount;
+    private BigDecimal payAmount;
 
     /**
      * 支付状态
      */
-    private Integer status;
-
-    /**
-     * 商户订单号
-     */
-    private String orderRequestId;
+    private String status;
 }

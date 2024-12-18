@@ -44,13 +44,13 @@ public class PayDO extends BaseDO {
      * 支付渠道
      */
     @TableField("channel")
-    private String channel;
+    private Integer channel;
 
     /**
      * 支付环境
      */
     @TableField("trade_type")
-    private String tradeType;
+    private Integer tradeType;
 
     /**
      * 订单标题
@@ -93,5 +93,5 @@ public class PayDO extends BaseDO {
      * 支付状态
      */
     @TableField("status")
-    private String status;
+    private Integer status;
 }

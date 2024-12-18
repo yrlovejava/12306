@@ -1,7 +1,8 @@
 package com.squirrel.index12306.biz.payservice.dto.base;
 
 import cn.hutool.core.util.StrUtil;
-import com.squirrel.index12306.biz.payservice.common.PayChannelEnum;
+import com.squirrel.index12306.biz.payservice.common.enums.PayChannelEnum;
+import com.squirrel.index12306.biz.payservice.common.enums.PayTradeTypeEnum;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -45,8 +46,8 @@ public final class AliPayRequest extends AbstractPayRequest {
     @Override
     public String buildMark() {
         String mark = PayChannelEnum.ALI_PAY.name();
-        if (StrUtil.isNotBlank(getTradeType())) {
-            mark = PayChannelEnum.ALI_PAY.name() + "_" + getTradeType();
+        if (getTradeType() != null) {
+            mark = PayChannelEnum.ALI_PAY.name() + "_" + PayTradeTypeEnum.findNameByCode(getTradeType());
         }
         return mark;
     }

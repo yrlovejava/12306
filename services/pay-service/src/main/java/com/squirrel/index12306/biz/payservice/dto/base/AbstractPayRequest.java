@@ -14,7 +14,7 @@ public abstract class AbstractPayRequest implements PayRequest {
     /**
      * 交易环境，H5、小程序、网站等
      */
-    private String tradeType;
+    private Integer tradeType;
 
     /**
      * 订单号
@@ -24,7 +24,7 @@ public abstract class AbstractPayRequest implements PayRequest {
     /**
      * 支付渠道
      */
-    private String channel;
+    private Integer channel;
 
     /**
      * 商户订单号

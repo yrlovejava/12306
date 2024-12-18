@@ -3,7 +3,7 @@ package com.squirrel.index12306.biz.payservice.controller;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.date.DateUtil;
-import com.squirrel.index12306.biz.payservice.common.PayChannelEnum;
+import com.squirrel.index12306.biz.payservice.common.enums.PayChannelEnum;
 import com.squirrel.index12306.biz.payservice.convert.PayCallbackRequestConvert;
 import com.squirrel.index12306.biz.payservice.dto.PayCallbackCommand;
 import com.squirrel.index12306.biz.payservice.dto.base.PayCallbackRequest;
@@ -32,7 +32,7 @@ public class PayCallbackController {
     public void callbackAlipay(@RequestParam Map<String, Object> requestParam) {
         PayCallbackCommand payCallbackCommand = BeanUtil.mapToBean(requestParam, PayCallbackCommand.class, true, CopyOptions.create());
         // 支付渠道
-        payCallbackCommand.setChannel(PayChannelEnum.ALI_PAY.name());
+        payCallbackCommand.setChannel(PayChannelEnum.ALI_PAY.getCode());
         // 订单号
         payCallbackCommand.setOrderRequestId(requestParam.get("out_trade_no").toString());
         // 买家付款时间
