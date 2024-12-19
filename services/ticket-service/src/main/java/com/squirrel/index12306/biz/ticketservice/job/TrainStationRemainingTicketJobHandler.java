@@ -60,6 +60,9 @@ public class TrainStationRemainingTicketJobHandler extends AbstractTrainStationJ
                         .put("3", "96")
                         .put("4", "192")
                         .put("5", "216")
+                        .put("6", "96")
+                        .put("7", "192")
+                        .put("8", "216")
                         .build();
                 // Redis中列车余票key: Key Prefix + 列车ID_起始站点_终点
                 String buildCacheKey = TRAIN_STATION_REMAINING_TICKET + StrUtil.join("_", each.getId(), item.getDeparture(), item.getArrival());
