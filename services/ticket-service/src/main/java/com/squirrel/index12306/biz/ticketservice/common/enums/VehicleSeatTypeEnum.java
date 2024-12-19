@@ -66,7 +66,12 @@ public enum VehicleSeatTypeEnum {
     /**
      * 无座
      */
-    NO_SEAT(10,"NO_SEAT","无座");
+    NO_SEAT(10,"NO_SEAT","无座"),
+
+    /**
+     * 二等包座
+     */
+    SECOND_CLASS_CABIN_SEAT(11, "SECOND_CLASS_CABIN_SEAT", "二等包座");
 
     private final Integer code;
 

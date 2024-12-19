@@ -1,10 +1,14 @@
 package com.squirrel.index12306.biz.ticketservice.common.enums;
 
+import cn.hutool.core.collection.ListUtil;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+
+import static com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum.*;
 
 /**
  * 交通工具类型
@@ -16,26 +20,35 @@ public enum VehicleTypeEnum {
     /**
      * 高铁
      */
-    HIGH_SPEED_RAIN(0, "HIGH_SPEED_RAIN"),
+    HIGH_SPEED_RAIN(0, "HIGH_SPEED_RAIN","高铁",  ListUtil.of(BUSINESS_CLASS.getCode(), FIRST_CLASS.getCode(), SECOND_CLASS.getCode())),
 
     /**
-     * 火车
+     * 动车
      */
-    TRAIN(1, "TRAIN"),
+    BULLET(1, "BULLET", "动车", ListUtil.of(SECOND_CLASS_CABIN_SEAT.getCode(), FIRST_SLEEPER_CLASS.getCode(), SECOND_SLEEPER_CLASS.getCode(), NO_SEAT.getCode())),
+
+    /**
+     * 普通车
+     */
+    TRAIN(2, "REGULAR_TRAIN","普通车",null),
 
     /**
      * 汽车
      */
-    CAR(2, "CAR"),
+    CAR(3, "CAR","汽车",null),
 
     /**
      * 飞机
      */
-    AIRPLANE(3, "AIRPLANE");
+    AIRPLANE(4, "AIRPLANE","飞机",null);
 
     private final Integer code;
 
     private final String name;
+
+    private final String value;
+
+    private final List<Integer> seatTypes;
 
     /**
      * 根据编码查找名称
@@ -45,6 +58,17 @@ public enum VehicleTypeEnum {
                 .filter(each -> Objects.equals(each.getCode(), code))
                 .findFirst()
                 .map(VehicleTypeEnum::getName)
+                .orElse(null);
+    }
+
+    /**
+     * 根据编码查找座位类型集合
+     */
+    public static List<Integer> findSeatTypesByCode(Integer code) {
+        return Arrays.stream(VehicleTypeEnum.values())
+                .filter(each -> Objects.equals(each.getCode(), code))
+                .findFirst()
+                .map(VehicleTypeEnum::getSeatTypes)
                 .orElse(null);
     }
 }
