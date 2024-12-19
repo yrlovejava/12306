@@ -16,6 +16,7 @@ import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationRelation
 import com.squirrel.index12306.biz.ticketservice.dto.domain.*;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketOrderDetailRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPurchaseRespDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.PayRemoteService;
@@ -308,38 +309,52 @@ public class TicketServiceImpl implements TicketService {
         // 使用策略模式购票
         List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults =
                 abstractStrategyChoose.chooseAndExecuteResp(
-                VehicleTypeEnum.findNameByCode(trainDO.getTrainType()) + VehicleSeatTypeEnum.findNameByCode(requestParam.getSeatType()),
+                VehicleTypeEnum.findNameByCode(trainDO.getTrainType()) +
+                        VehicleSeatTypeEnum.findNameByCode(requestParam.getPassengers().get(0).getSeatType()),
                 requestParam);
         // TODO 批量插入
         trainPurchaseTicketResults.forEach(each -> {
-            PassengerInfoDTO passengerInfo = each.getPassengerInfo();
             TicketDO ticketDO = new TicketDO();
             // TODO 创建用户上下文
             ticketDO.setUsername(MDC.get(UserConstant.USER_NAME_KEY));
             ticketDO.setTrainId(Long.parseLong(requestParam.getTrainId()));
             ticketDO.setCarriageNumber(each.getCarriageNumber());
             ticketDO.setSeatNumber(each.getSeatNumber());
-            ticketDO.setPassengerId(passengerInfo.getPassengerId());
+            ticketDO.setPassengerId(each.getPassengerId());
             ticketDO.setTicketStatus(TicketStatusEnum.UNPAID.getCode());
             ticketMapper.insert(ticketDO);
         });
+        // 返回的结果
         Result<String> ticketOrderResult;
+        // 订单详情集合
+        List<TicketOrderDetailRespDTO> ticketOrderDetailResults = new ArrayList<>();
         try {
             List<TicketOrderItemCreateRemoteReqDTO> orderItemCreateRemoteReqDTOList = new ArrayList<>();
             trainPurchaseTicketResults.forEach(each -> {
-                PassengerInfoDTO passengerInfo = each.getPassengerInfo();
                 // 构造创建订单明细请求参数
                 TicketOrderItemCreateRemoteReqDTO orderItemCreateRemoteReqDTO = TicketOrderItemCreateRemoteReqDTO.builder()
                         .amount(each.getAmount())// 座位金额
                         .carriageNumber(each.getCarriageNumber())// 车厢号
                         .seatNumber(each.getSeatNumber())// 座位号
-                        .idCard(passengerInfo.getIdCard())// 证件号
-                        .idType(passengerInfo.getIdType())// 证件类型
-                        .phone(passengerInfo.getPhone())// 手机号
-                        .realName(passengerInfo.getRealName())// 真实姓名
+                        .idCard(each.getIdCard())// 证件号
+                        .idType(each.getIdType())// 证件类型
+                        .phone(each.getPhone())// 手机号
+                        .realName(each.getRealName())// 真实姓名
+                        .build();
+                // 构造订单明细返回参数
+                TicketOrderDetailRespDTO ticketOrderDetailRespDTO = TicketOrderDetailRespDTO.builder()
+                        .amount(each.getAmount())// 座位金额
+                        .carriageNumber(each.getCarriageNumber())// 车厢号
+                        .seatNumber(each.getSeatNumber())// 座位号
+                        .idCard(each.getIdCard())// 证件号
+                        .idType(each.getIdType())// 证件类型
+                        .seatType(each.getSeatType())// 席别类型
+                        .ticketType(each.getUserType())// 车票类型0：成人 1：儿童 2：学生 3：残疾军人
+                        .realName(each.getRealName())// 真实姓名
                         .build();
                 // 加入订单创建请求列表中
                 orderItemCreateRemoteReqDTOList.add(orderItemCreateRemoteReqDTO);
+                ticketOrderDetailResults.add(ticketOrderDetailRespDTO);
             });
             // 构造创建整个订单请求参数
             TicketOrderCreateRemoteReqDTO orderCreateRemoteReqDTO = TicketOrderCreateRemoteReqDTO.builder()
@@ -365,7 +380,7 @@ public class TicketServiceImpl implements TicketService {
             // TODO 回退锁定车票
             throw new ServiceException(ticketOrderResult.getMessage());
         }
-        return new TicketPurchaseRespDTO(ticketOrderResult.getData());
+        return new TicketPurchaseRespDTO(ticketOrderResult.getData(),ticketOrderDetailResults);
     }
 
     /**

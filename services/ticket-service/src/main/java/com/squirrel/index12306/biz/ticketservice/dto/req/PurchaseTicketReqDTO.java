@@ -1,5 +1,6 @@
 package com.squirrel.index12306.biz.ticketservice.dto.req;
 
+import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassengerDetailDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -22,13 +23,7 @@ public class PurchaseTicketReqDTO {
      * 乘车人
      */
     @Schema(description = "乘车人")
-    private List<String> passengerIds;
-
-    /**
-     * 座位类型
-     */
-    @Schema(description = "座位类型")
-    private Integer seatType;
+    private List<PurchaseTicketPassengerDetailDTO> passengers;
 
     /**
      * 选择座位

@@ -10,7 +10,7 @@ import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationPriceDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationPriceMapper;
-import com.squirrel.index12306.biz.ticketservice.dto.domain.PassengerInfoDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassengerDetailDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.UserRemoteService;
@@ -66,12 +66,11 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements Application
                 .eq(TrainStationPriceDO::getTrainId, requestParam.getTrainId())
                 .eq(TrainStationPriceDO::getDeparture, requestParam.getDeparture())
                 .eq(TrainStationPriceDO::getArrival, requestParam.getArrival())
-                .eq(TrainStationPriceDO::getSeatType, requestParam.getSeatType());
+                .eq(TrainStationPriceDO::getSeatType, requestParam.getPassengers().get(0).getSeatType());
         TrainStationPriceDO trainStationPriceDO = trainStationPriceMapper.selectOne(lambdaQueryWrapper);
         // 获取乘车人的id集合
         List<String> passengerIds = actualResult.stream()
-                .map(TrainPurchaseTicketRespDTO::getPassengerInfo)
-                .map(PassengerInfoDTO::getPassengerId)
+                .map(TrainPurchaseTicketRespDTO::getPassengerId)
                 .toList();
         Result<List<PassengerRespDTO>> passengerRemoteResult;
         List<PassengerRespDTO> passengerRemoteResultList;
@@ -81,16 +80,15 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements Application
             if(passengerRemoteResult.isSuccess() && CollUtil.isNotEmpty(passengerRemoteResultList = passengerRemoteResult.getData())) {
                 // 选择座位的时候，PassengerInfo 中只有乘客id，这里需要给每一个乘车人赋值剩余信息
                 actualResult.forEach(each -> {
-                    PassengerInfoDTO passengerInfo = each.getPassengerInfo();
-                    String passengerId = passengerInfo.getPassengerId();
+                    String passengerId = each.getPassengerId();
                     passengerRemoteResultList.stream()
                             .filter(item -> Objects.equals(item.getId(),passengerId))
                             .findFirst()
                             .ifPresent(passenger -> {
-                                passengerInfo.setIdCard(passenger.getIdCard());
-                                passengerInfo.setPhone(passenger.getPhone());
-                                passengerInfo.setIdType(passenger.getIdType());
-                                passengerInfo.setRealName(passenger.getRealName());
+                                each.setIdCard(passenger.getIdCard());
+                                each.setPhone(passenger.getPhone());
+                                each.setIdType(passenger.getIdType());
+                                each.setRealName(passenger.getRealName());
                             });
                     each.setAmount(trainStationPriceDO.getPrice());
                 });
