@@ -6,6 +6,7 @@ import lombok.Data;
 import org.hibernate.validator.constraints.ScriptAssert;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 车次集合实体
@@ -39,6 +40,12 @@ public class TicketListDTO {
      */
     @Schema(description = "历时")
     private String duration;
+
+    /**
+     * 到达天数
+     */
+    @Schema(description = "到达天数")
+    private Integer daysArrived;
 
     /**
      * 出发站点
@@ -82,6 +89,12 @@ public class TicketListDTO {
      */
     @Schema(description = "销售状态")
     private Integer saleStatus;
+
+    /**
+     * 列车标签集合 0：复兴号 1：智能动车组 2：静音车厢 3：支持选铺
+     */
+    @Schema(description = "列车标签集合")
+    private List<String> trainTag;
 
     /**
      * 高铁属性

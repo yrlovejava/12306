@@ -91,6 +91,13 @@ public class TicketServiceImpl implements TicketService {
             result.setDepartureFlag(each.getDepartureFlag());// 出发标识
             result.setArrivalFlag(each.getArrivalFlag()); // 到达标识
             result.setTrainType(trainDO.getTrainType());// 列车类型
+            // 列车标签集合
+            if(StrUtil.isNotBlank(trainDO.getTrainBrand())) {
+                result.setTrainTag(StrUtil.split(trainDO.getTrainBrand(),","));
+            }
+            // 出发到到达需要的天数
+            long betweenDay = cn.hutool.core.date.DateUtil.betweenDay(each.getDepartureTime(),each.getArrivalTime(),true);
+            result.setDaysArrived((int)betweenDay);
             result.setSaleStatus(new Date().after(trainDO.getSaleTime()) ? 0 : 1);// 销售状态
             result.setSaleTime(trainDO.getSaleTime()); // 可售时间
             if (StrUtil.isNotBlank(trainDO.getTrainBrand())) {
