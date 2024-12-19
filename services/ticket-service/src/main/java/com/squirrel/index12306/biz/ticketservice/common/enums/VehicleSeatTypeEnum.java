@@ -31,7 +31,7 @@ public enum VehicleSeatTypeEnum {
     /**
      * 动卧
      */
-    SLEEPER_CLASS(3,"SLEEPER_CLASS","动卧"),
+    SLEEPER(3,"SLEEPER","动卧"),
 
     /**
      * 一等卧
@@ -46,22 +46,27 @@ public enum VehicleSeatTypeEnum {
     /**
      * 软卧
      */
-    SOFT_SLEEPER_CLASS(6,"SOFT_SLEEPER_CLASS","软卧"),
+    SOFT_SLEEPER(6,"SOFT_SLEEPER","软卧"),
 
     /**
      * 高级软卧
      */
-    DELUXE_SOFT_SLEEPER_CLASS(7,"DELUXE_SOFT_SLEEPER_CLASS","高级软卧"),
+    DELUXE_SOFT_SLEEPER(7,"DELUXE_SOFT_SLEEPER","高级软卧"),
 
     /**
      * 硬卧
      */
-    HARD_SLEEPER_CLASS(8,"HARD_SLEEPER_CLASS","硬卧"),
+    HARD_SLEEPER(8,"HARD_SLEEPER","硬卧"),
 
     /**
      * 硬座
      */
-    HARD_SEAT_CLASS(9,"HARD_SEAT_CLASS","硬座");
+    HARD_SEAT(9,"HARD_SEAT","硬座"),
+
+    /**
+     * 无座
+     */
+    NO_SEAT(10,"NO_SEAT","无座");
 
     private final Integer code;
 

@@ -196,16 +196,18 @@ public class TicketServiceImpl implements TicketService {
             Optional.ofNullable(highSpeedTrain.getSecondClassQuantity()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SECOND_CLASS.getValue()));
             // 高铁座位类型
             BulletTrainDTO bulletTrain = each.getBulletTrain();
-            Optional.ofNullable(bulletTrain.getSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(bulletTrain.getSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SLEEPER.getValue()));
             Optional.ofNullable(bulletTrain.getFirstSleeperCandidate()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.FIRST_SLEEPER_CLASS.getValue()));
             Optional.ofNullable(bulletTrain.getSecondSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SECOND_SLEEPER_CLASS.getValue()));
-            Optional.ofNullable(bulletTrain.getSecondClassPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SLEEPER_CLASS.getValue()));
+            Optional.ofNullable(bulletTrain.getSecondClassPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SLEEPER.getValue()));
+            Optional.ofNullable(bulletTrain.getNoSeatPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.NO_SEAT.getValue()));
             // 普通车座位类型
             RegularTrainDTO regularTrain = each.getRegularTrain();
-            Optional.ofNullable(regularTrain.getSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SOFT_SLEEPER_CLASS.getValue()));
-            Optional.ofNullable(regularTrain.getDeluxeSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.DELUXE_SOFT_SLEEPER_CLASS.getValue()));
-            Optional.ofNullable(regularTrain.getHardSeatPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.HARD_SLEEPER_CLASS.getValue()));
-            Optional.ofNullable(regularTrain.getHardSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.HARD_SEAT_CLASS.getValue()));
+            Optional.ofNullable(regularTrain.getSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.SOFT_SLEEPER.getValue()));
+            Optional.ofNullable(regularTrain.getDeluxeSoftSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.DELUXE_SOFT_SLEEPER.getValue()));
+            Optional.ofNullable(regularTrain.getHardSeatPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.HARD_SLEEPER.getValue()));
+            Optional.ofNullable(regularTrain.getHardSleeperPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.HARD_SEAT.getValue()));
+            Optional.ofNullable(bulletTrain.getNoSeatPrice()).ifPresent(item -> resultSeatClassList.add(VehicleSeatTypeEnum.NO_SEAT.getValue()));
         }
         return resultSeatClassList.stream().toList();
     }
