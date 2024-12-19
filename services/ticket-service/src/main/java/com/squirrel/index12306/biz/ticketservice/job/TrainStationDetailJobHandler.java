@@ -66,7 +66,7 @@ public class TrainStationDetailJobHandler extends AbstractTrainStationJobHandler
                         .put("departureTime", DateUtil.format(item.getDepartureTime(), "HH:mm"))
                         .put("arrivalTime", DateUtil.format(item.getArrivalTime(), "HH:mm"))
                         .put("saleTime", DateUtil.format(each.getSaleTime(), String.valueOf(NORM_DATETIME_MINUTE_FORMAT)))
-                        .put("trainBrand", each.getTrainBrand())
+                        .put("trainTag", each.getTrainTag())
                         .build();
                 StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
                 // Redis中站点详细信息查询的key: Key Prefix + 列车ID_起始站点_终点

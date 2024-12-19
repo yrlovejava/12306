@@ -25,7 +25,7 @@ public enum VehicleTypeEnum {
     /**
      * 动车
      */
-    BULLET(1, "BULLET", "动车", ListUtil.of(SECOND_CLASS_CABIN_SEAT.getCode(), FIRST_SLEEPER_CLASS.getCode(), SECOND_SLEEPER_CLASS.getCode(), NO_SEAT.getCode())),
+    BULLET(1, "BULLET", "动车", ListUtil.of(SECOND_CLASS_CABIN_SEAT.getCode(), FIRST_SLEEPER.getCode(), SECOND_SLEEPER.getCode(), NO_SEAT_SLEEPER.getCode())),
 
     /**
      * 普通车
