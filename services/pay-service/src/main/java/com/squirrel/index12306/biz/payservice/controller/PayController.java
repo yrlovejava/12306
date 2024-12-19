@@ -30,7 +30,7 @@ public class PayController {
      * @return Result<PayRespDTO>
      */
     @Operation(summary = "公共支付接口")
-    @PostMapping("/api/pay-service/create/pay")
+    @PostMapping("/api/pay-service/pay/create")
     public Result<PayRespDTO> pay(@RequestBody PayCommand requestParam) {
         PayRequest payRequest = PayRequestConvert.command2PayRequest(requestParam);
         PayRespDTO result = payService.commonPay(payRequest);
@@ -43,7 +43,7 @@ public class PayController {
      * @return Result<PayInfoRespDTO>
      */
     @Operation(summary = "查询支付结果接口")
-    @GetMapping("/api/pay-service/get/pay/info")
+    @GetMapping("/api/pay-service/get/pay/query")
     public Result<PayInfoRespDTO> getPayInfo(@RequestParam(value = "orderSn") String orderSn) {
         return Results.success(payService.getPayInfo(orderSn));
     }

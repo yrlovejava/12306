@@ -18,7 +18,9 @@ import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPurchaseRespDTO;
+import com.squirrel.index12306.biz.ticketservice.remote.PayRemoteService;
 import com.squirrel.index12306.biz.ticketservice.remote.TicketOrderRemoteService;
+import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
@@ -59,6 +61,7 @@ public class TicketServiceImpl implements TicketService {
     private final AbstractStrategyChoose abstractStrategyChoose;
     private final TicketMapper ticketMapper;
     private final TicketOrderRemoteService ticketOrderRemoteService;
+    private final PayRemoteService payRemoteService;
 
     /**
      * 根据条件查询车票
@@ -363,5 +366,16 @@ public class TicketServiceImpl implements TicketService {
             throw new ServiceException(ticketOrderResult.getMessage());
         }
         return new TicketPurchaseRespDTO(ticketOrderResult.getData());
+    }
+
+    /**
+     * 支付单详情查询
+     *
+     * @param orderSn 订单号
+     * @return 支付单详情
+     */
+    @Override
+    public PayInfoRespDTO getPayInfo(String orderSn) {
+        return payRemoteService.getPayInfo(orderSn).getData();
     }
 }
