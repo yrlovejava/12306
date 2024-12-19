@@ -91,7 +91,7 @@ public class TicketServiceImpl implements TicketService {
             result.setDepartureFlag(each.getDepartureFlag());// 出发标识
             result.setArrivalFlag(each.getArrivalFlag()); // 到达标识
             result.setTrainType(trainDO.getTrainType());// 列车类型
-            result.setSaleStatus(trainDO.getSaleStatus());// 销售状态
+            result.setSaleStatus(new Date().after(trainDO.getSaleTime()) ? 0 : 1);// 销售状态
             result.setSaleTime(trainDO.getSaleTime()); // 可售时间
             if (StrUtil.isNotBlank(trainDO.getTrainBrand())) {
                 trainBrandSet.addAll(TrainTagEnum.findNameByCode(StrUtil.split(trainDO.getTrainBrand(), ",")));
