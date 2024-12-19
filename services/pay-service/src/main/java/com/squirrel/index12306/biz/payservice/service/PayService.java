@@ -1,6 +1,7 @@
 package com.squirrel.index12306.biz.payservice.service;
 
 import com.squirrel.index12306.biz.payservice.dto.PayCallbackReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.PayRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
 
@@ -23,4 +24,12 @@ public interface PayService {
      * @param requestParam 回调支付单实体
      */
     void callbackPay(PayCallbackReqDTO requestParam);
+
+    /**
+     * 支付单详情查询
+     *
+     * @param orderSn 订单号
+     * @return 支付单详情
+     */
+    PayInfoRespDTO getPayInfo(String orderSn);
 }

@@ -6,6 +6,7 @@ import com.squirrel.index12306.biz.payservice.common.enums.TradeStatusEnum;
 import com.squirrel.index12306.biz.payservice.dao.entity.PayDO;
 import com.squirrel.index12306.biz.payservice.dao.mapper.PayMapper;
 import com.squirrel.index12306.biz.payservice.dto.PayCallbackReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.PayRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
 import com.squirrel.index12306.biz.payservice.dto.base.PayResponse;
@@ -100,5 +101,19 @@ public class PayServiceImpl implements PayService {
         if(Objects.equals(requestParam.getStatus(),TradeStatusEnum.TRADE_SUCCESS.tradeCode())){
             payResultCallbackOrderSendProduce.sendMessage(BeanUtil.convert(payDO, PayResultCallbackOrderEvent.class));
         }
+    }
+
+    /**
+     * 支付单详情查询
+     *
+     * @param orderSn 订单号
+     * @return 支付单详情
+     */
+    @Override
+    public PayInfoRespDTO getPayInfo(String orderSn) {
+        // 查询数据库中支付数据
+        PayDO payDO = payMapper.selectOne(Wrappers.lambdaQuery(PayDO.class)
+                .eq(PayDO::getOrderSn, orderSn));
+        return BeanUtil.convert(payDO,PayInfoRespDTO.class);
     }
 }
