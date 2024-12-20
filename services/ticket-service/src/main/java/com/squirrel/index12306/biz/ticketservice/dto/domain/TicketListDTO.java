@@ -3,7 +3,6 @@ package com.squirrel.index12306.biz.ticketservice.dto.domain;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import org.hibernate.validator.constraints.ScriptAssert;
 
 import java.util.Date;
 import java.util.List;
@@ -14,6 +13,12 @@ import java.util.List;
 @Data
 @Schema(description = "车次集合实体")
 public class TicketListDTO {
+
+    /**
+     * 列车ID
+     */
+    @Schema(description = "列车ID")
+    private String trainId;
 
     /**
      * 车次

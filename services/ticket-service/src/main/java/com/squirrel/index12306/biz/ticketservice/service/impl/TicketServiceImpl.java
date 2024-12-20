@@ -86,6 +86,7 @@ public class TicketServiceImpl implements TicketService {
                     .eq(TrainDO::getId, each.getTrainId()));
             // 封装返回 DTO
             TicketListDTO result = new TicketListDTO();
+            result.setTrainId(String.valueOf(trainDO.getId()));// 列车ID
             result.setTrainNumber(trainDO.getTrainNumber()); // 车次
             result.setDepartureTime(each.getDepartureTime()); // 出发时间
             result.setArrivalTime(each.getArrivalTime()); // 到达时间
