@@ -1,16 +1,14 @@
 package com.squirrel.index12306.biz.orderservice.controller;
 
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.service.OrderService;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.web.Results;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 车票订单接口控制层
@@ -21,6 +19,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class TicketOrderController {
 
     private final OrderService orderService;
+
+    /**
+     * 车票订单查询
+     * @param orderSn 订单号
+     */
+    @Operation(summary = "车票订单查询")
+    @GetMapping("/api/order-service/order/ticket/query")
+    public Result<TicketOrderDetailRespDTO> queryTicketOrder(@RequestParam(value = "orderSn") String orderSn) {
+        return Results.success(orderService.queryTicketOrder(orderSn));
+    }
 
     /**
      * 车票订单创建

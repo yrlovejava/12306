@@ -1,26 +1,26 @@
-package com.squirrel.index12306.biz.orderservice.dto.req;
+package com.squirrel.index12306.biz.orderservice.dto.resp;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * 车票订单详情创建请求参数
+ * 乘车人订单详情返回参数
  */
 @Data
-@Schema(description = "车票订饭详情创建请求参数")
-public class TicketOrderItemCreateReqDTO {
+@Schema(description = "乘车人订单详情返回参数")
+public class TicketOrderPassengerDetailRespDTO {
+
+    /**
+     * 席别类型
+     */
+    @Schema(description = "席别类型")
+    private Integer seatType;
 
     /**
      * 车厢号
      */
     @Schema(description = "车厢号")
     private String carriageNumber;
-
-    /**
-     * 座位类型
-     */
-    @Schema(description = "座位类型")
-    private Integer seatType;
 
     /**
      * 座位号
@@ -47,20 +47,14 @@ public class TicketOrderItemCreateReqDTO {
     private String idCard;
 
     /**
-     * 手机号
+     * 车票类型 0：成人 1：儿童 2：学生 3：残疾军人
      */
-    @Schema(description = "手机号")
-    private String phone;
+    @Schema(description = "车票类型")
+    private Integer ticketType;
 
     /**
      * 订单金额
      */
     @Schema(description = "订单金额")
     private Integer amount;
-
-    /**
-     * 车票类型
-     */
-    @Schema(description = "车票类型")
-    private Integer ticketType;
 }

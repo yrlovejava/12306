@@ -12,9 +12,12 @@ import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderMapper;
 import com.squirrel.index12306.biz.orderservice.dto.domain.OrderStatusReversalDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderItemCreateReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDTO;
+import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderPassengerDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.mq.event.PayResultCallbackOrderEvent;
 import com.squirrel.index12306.biz.orderservice.service.OrderItemService;
 import com.squirrel.index12306.biz.orderservice.service.OrderService;
+import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.distributedid.toolkit.SnowflakeIdUtil;
@@ -41,6 +44,28 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemMapper orderItemMapper;
     private final OrderItemService orderItemService;
     private final RedissonClient redissonClient;
+
+    /**
+     * 查询火车票订单详情
+     *
+     * @param orderSn 订单号
+     * @return 订单详情
+     */
+    @Override
+    public TicketOrderDetailRespDTO queryTicketOrder(String orderSn) {
+        // 查询数据库中订单信息
+        OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
+                .eq(OrderDO::getOrderSn, orderSn));
+        // 转换为订单详情返回参数
+        TicketOrderDetailRespDTO result = BeanUtil.convert(orderDO, TicketOrderDetailRespDTO.class);
+        // 查询数据库中订单明细
+        List<OrderItemDO> orderItemDOList = orderItemMapper.selectList(Wrappers.lambdaQuery(OrderItemDO.class)
+                .eq(OrderItemDO::getOrderSn, orderSn));
+        // 转换订单明细为乘车人详细返回信息
+        result.setPassengerDetails(BeanUtil.convert(orderItemDOList, TicketOrderPassengerDetailRespDTO.class));
+        // 返回结果
+        return result;
+    }
 
     /**
      * 创建火车票订单
