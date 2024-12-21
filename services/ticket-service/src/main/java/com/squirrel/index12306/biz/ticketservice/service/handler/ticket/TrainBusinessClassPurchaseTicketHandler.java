@@ -25,7 +25,7 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
  */
 @Component
 @RequiredArgsConstructor
-public class TrainBusinessPurchaseTicketHandler extends AbstractTrainPurchaseTicketTemplate {
+public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurchaseTicketTemplate {
 
     private final CarriageService carriageService;
     private final DistributedCache distributedCache;
@@ -59,13 +59,15 @@ public class TrainBusinessPurchaseTicketHandler extends AbstractTrainPurchaseTic
                 for (int j = 0;j < selectSeats.size();j++) {
                     TrainPurchaseTicketRespDTO result = new TrainPurchaseTicketRespDTO();
                     String seatNumber = selectSeats.get(j);
+                    // 获取乘车人信息
+                    PurchaseTicketPassengerDetailDTO currentTicketPassenger = passengerDetails.get(j);
                     // TODO 席位
-                    result.setSeatType(0);
+                    result.setSeatType(currentTicketPassenger.getSeatType());
                     // TODO 用户类型
                     result.setUserType(0);
                     result.setSeatNumber(seatNumber);// 座位号
                     result.setCarriageNumber(carriagesNumber);// 车厢号
-                    result.setPassengerId(passengerDetails.get(j).getPassengerId());// 乘车人id
+                    result.setPassengerId(currentTicketPassenger.getPassengerId());// 乘车人id
                     actualResult.add(result);
                 }
                 break;
