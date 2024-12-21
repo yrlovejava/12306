@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -53,7 +54,7 @@ public class TokenValidateGatewayFilterFactory extends AbstractGatewayFilterFact
                 ServerHttpRequest.Builder builder = exchange.getRequest().mutate().headers(httpHeaders -> {
                     httpHeaders.set(UserConstant.USER_ID_KEY, userInfo.getUserId());
                     httpHeaders.set(UserConstant.USER_NAME_KEY, userInfo.getUsername());
-                    httpHeaders.set(UserConstant.REAL_NAME_KEY, userInfo.getRealName());
+                    httpHeaders.set(UserConstant.REAL_NAME_KEY, URLEncoder.encode(userInfo.getRealName(), StandardCharsets.UTF_8));
                 });
                 return chain.filter(exchange.mutate().request(builder.build()).build());
             }

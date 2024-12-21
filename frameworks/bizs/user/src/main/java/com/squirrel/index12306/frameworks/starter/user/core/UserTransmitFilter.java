@@ -3,7 +3,6 @@ package com.squirrel.index12306.frameworks.starter.user.core;
 import com.squirrel.index12306.framework.starter.bases.constant.UserConstant;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.MDC;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -28,14 +27,17 @@ public class UserTransmitFilter implements Filter {
             if(StringUtils.hasText(realName)) {
                 realName = URLDecoder.decode(realName, StandardCharsets.UTF_8);
             }
-            MDC.put(UserConstant.USER_ID_KEY, userId);
-            MDC.put(UserConstant.USER_NAME_KEY, userName);
-            MDC.put(UserConstant.REAL_NAME_KEY, realName);
+            UserInfoDTO userInfoDTO = UserInfoDTO.builder()
+                    .userId(userId)
+                    .username(userName)
+                    .realName(realName)
+                    .build();
+            UserContext.setUser(userInfoDTO);
         }
         try {
             filterChain.doFilter(servletRequest, servletResponse);
         }finally {
-            MDC.clear();
+            UserContext.removeUser();
         }
     }
 }
