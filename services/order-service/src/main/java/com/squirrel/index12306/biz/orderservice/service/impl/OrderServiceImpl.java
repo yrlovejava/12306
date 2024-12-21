@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 订单接口实现类
@@ -127,7 +128,7 @@ public class OrderServiceImpl implements OrderService {
         OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
                 .eq(OrderDO::getOrderSn, orderSn));
         // 判断订单状态，只有待付款状态才能关闭
-        if (orderDO.getStatus() != OrderStatusEnum.PENDING_PAYMENT.getStatus()) {
+        if (Objects.isNull(orderDO) || orderDO.getStatus() != OrderStatusEnum.PENDING_PAYMENT.getStatus()) {
             return;
         }
         // 原则上订单关闭和订单取消这两个方法可以复用，为了区分未来考虑到的场景，这里对方法进行拆分但服用逻辑
