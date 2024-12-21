@@ -1,5 +1,7 @@
 package com.squirrel.index12306.biz.ticketservice.service;
 
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.squirrel.index12306.biz.ticketservice.dao.entity.TicketDO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
@@ -10,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 /**
  * 车票接口
  */
-public interface TicketService {
+public interface TicketService extends IService<TicketDO> {
 
     /**
      * 根据条件分页查询车票
