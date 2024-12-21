@@ -85,10 +85,11 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements Application
                             .filter(item -> Objects.equals(item.getId(),passengerId))
                             .findFirst()
                             .ifPresent(passenger -> {
-                                each.setIdCard(passenger.getIdCard());
-                                each.setPhone(passenger.getPhone());
-                                each.setIdType(passenger.getIdType());
-                                each.setRealName(passenger.getRealName());
+                                each.setIdCard(passenger.getIdCard());// 证件号
+                                each.setPhone(passenger.getPhone());// 手机号
+                                each.setSeatType(passenger.getDiscountType());// 席别类型
+                                each.setIdType(passenger.getIdType());// 证件类型
+                                each.setRealName(passenger.getRealName());// 真实姓名
                             });
                     each.setAmount(trainStationPriceDO.getPrice());
                 });

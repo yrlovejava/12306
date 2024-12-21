@@ -44,7 +44,7 @@ public class PassengerRespDTO {
     private String idCard;
 
     /**
-     * 优惠类型
+     * 优惠类型，同用户类型 儿童、成人、学生、残疾军人
      */
     @Schema(description = "优惠类型")
     private Integer discountType;
