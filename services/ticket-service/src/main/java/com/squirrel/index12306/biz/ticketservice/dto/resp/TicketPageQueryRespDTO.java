@@ -30,7 +30,7 @@ public class TicketPageQueryRespDTO {
      * 车次类型: D-动车 Z-直达 复兴号等
      */
     @Schema(description = "车次类型: D-动车 Z-直达 复兴号等")
-    private List<String> trainBrandList;
+    private List<Integer> trainBrandList;
 
     /**
      * 出发车站
@@ -48,5 +48,5 @@ public class TicketPageQueryRespDTO {
      * 车次席别
      */
     @Schema(description = "车次席别")
-    private List<String> seatClassList;
+    private List<Integer> seatClassTypeList;
 }
