@@ -10,7 +10,6 @@ import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationPriceDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationPriceMapper;
-import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassengerDetailDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.UserRemoteService;
@@ -22,9 +21,9 @@ import com.squirrel.index12306.framework.starter.bases.constant.UserConstant;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractExecuteStrategy;
+import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,7 +75,8 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements Application
         List<PassengerRespDTO> passengerRemoteResultList;
         try{
             // 查询乘车人信息
-            passengerRemoteResult = userRemoteService.listPassengerQueryByIds(MDC.get(UserConstant.USER_NAME_KEY), passengerIds);
+            passengerRemoteResult = userRemoteService.listPassengerQueryByIds(
+                    UserContext.getUsername(), passengerIds);
             if(passengerRemoteResult.isSuccess() && CollUtil.isNotEmpty(passengerRemoteResultList = passengerRemoteResult.getData())) {
                 // 选择座位的时候，PassengerInfo 中只有乘客id，这里需要给每一个乘车人赋值剩余信息
                 actualResult.forEach(each -> {

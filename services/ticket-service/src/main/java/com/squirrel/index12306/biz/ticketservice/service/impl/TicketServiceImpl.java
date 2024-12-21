@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.squirrel.index12306.biz.ticketservice.common.enums.*;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TicketDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
@@ -32,12 +33,13 @@ import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
+import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -54,7 +56,7 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
  */
 @Service
 @RequiredArgsConstructor
-public class TicketServiceImpl implements TicketService {
+public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implements TicketService {
 
     private static final Logger log = LoggerFactory.getLogger(TicketServiceImpl.class);
     private final TrainMapper trainMapper;
@@ -68,8 +70,9 @@ public class TicketServiceImpl implements TicketService {
 
     /**
      * 根据条件查询车票
+     *
      * @param requestParam 分页查询条件
-     * @return Result<IPage<TicketPageQueryRespDTO>>
+     * @return Result<IPage < TicketPageQueryRespDTO>>
      */
     @Override
     public TicketPageQueryRespDTO pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
@@ -83,7 +86,7 @@ public class TicketServiceImpl implements TicketService {
         List<TicketListDTO> seatResults = new ArrayList<>();
         // 列车标签集合
         Set<Integer> trainBrandSet = new HashSet<>();
-        //
+        // 处理车站信息
         for (TrainStationRelationDO each : trainStationRelationList) {
             // 查询列车信息
             TrainDO trainDO = trainMapper.selectOne(Wrappers.<TrainDO>lambdaQuery()
@@ -101,16 +104,16 @@ public class TicketServiceImpl implements TicketService {
             result.setArrivalFlag(each.getArrivalFlag()); // 到达标识
             result.setTrainType(trainDO.getTrainType());// 列车类型
             // 列车标签集合
-            if(StrUtil.isNotBlank(trainDO.getTrainTag())) {
-                result.setTrainTags(StrUtil.split(trainDO.getTrainTag(),","));
+            if (StrUtil.isNotBlank(trainDO.getTrainTag())) {
+                result.setTrainTags(StrUtil.split(trainDO.getTrainTag(), ","));
             }
             // 出发到到达需要的天数
-            long betweenDay = cn.hutool.core.date.DateUtil.betweenDay(each.getDepartureTime(),each.getArrivalTime(),true);
-            result.setDaysArrived((int)betweenDay);
+            long betweenDay = cn.hutool.core.date.DateUtil.betweenDay(each.getDepartureTime(), each.getArrivalTime(), true);
+            result.setDaysArrived((int) betweenDay);
             result.setSaleStatus(new Date().after(trainDO.getSaleTime()) ? 0 : 1);// 销售状态
             result.setSaleTime(trainDO.getSaleTime()); // 可售时间
             if (StrUtil.isNotBlank(trainDO.getTrainBrand())) {
-                trainBrandSet.addAll(StrUtil.split(trainDO.getTrainBrand(),",")
+                trainBrandSet.addAll(StrUtil.split(trainDO.getTrainBrand(), ",")
                         .stream()
                         .map(Integer::parseInt)
                         .toList());
@@ -145,6 +148,8 @@ public class TicketServiceImpl implements TicketService {
                         .build();
                 seatClassList.add(seatClassDTO);
             });
+            result.setSeatClassList(seatClassList);
+            seatResults.add(result);
         }
         return TicketPageQueryRespDTO.builder()
                 .trainList(seatResults)// 车次集合
@@ -157,6 +162,7 @@ public class TicketServiceImpl implements TicketService {
 
     /**
      * 获取列车车次信息中的出发站
+     *
      * @param seatResults 车次信息集合
      * @return 出发站集合
      */
@@ -166,6 +172,7 @@ public class TicketServiceImpl implements TicketService {
 
     /**
      * 获取列车车次信息中的到达站
+     *
      * @param seatResults 车次信息集合
      * @return 到达站集合
      */
@@ -175,6 +182,7 @@ public class TicketServiceImpl implements TicketService {
 
     /**
      * 获取列车车次信息中的座位类型
+     *
      * @param seatResults 车次信息集合
      * @return 座位类型集合
      */
@@ -195,6 +203,7 @@ public class TicketServiceImpl implements TicketService {
      * @return 订单号
      */
     @Override
+    @Transactional(rollbackFor = Throwable.class)
     public TicketPurchaseRespDTO purchaseTickets(PurchaseTicketReqDTO requestParam) {
         String trainId = requestParam.getTrainId();
         // 在 redis 中查询列车信息
@@ -208,21 +217,22 @@ public class TicketServiceImpl implements TicketService {
         // 使用策略模式购票
         List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults =
                 abstractStrategyChoose.chooseAndExecuteResp(
-                VehicleTypeEnum.findNameByCode(trainDO.getTrainType()) +
-                        VehicleSeatTypeEnum.findNameByCode(requestParam.getPassengers().get(0).getSeatType()),
-                requestParam);
-        // TODO 批量插入
-        trainPurchaseTicketResults.forEach(each -> {
-            TicketDO ticketDO = new TicketDO();
-            // TODO 创建用户上下文
-            ticketDO.setUsername(MDC.get(UserConstant.USER_NAME_KEY));
-            ticketDO.setTrainId(Long.parseLong(requestParam.getTrainId()));
-            ticketDO.setCarriageNumber(each.getCarriageNumber());
-            ticketDO.setSeatNumber(each.getSeatNumber());
-            ticketDO.setPassengerId(each.getPassengerId());
-            ticketDO.setTicketStatus(TicketStatusEnum.UNPAID.getCode());
-            ticketMapper.insert(ticketDO);
-        });
+                        VehicleTypeEnum.findNameByCode(trainDO.getTrainType()) +
+                                VehicleSeatTypeEnum.findNameByCode(requestParam.getPassengers().get(0).getSeatType()),
+                        requestParam);
+        // 批量插入车票到数据库
+        List<TicketDO> ticketDOList = trainPurchaseTicketResults.stream()
+                .map(each -> TicketDO.builder()
+                        .username(UserContext.getUsername())
+                        .trainId(Long.parseLong(requestParam.getTrainId()))
+                        .carriageNumber(each.getCarriageNumber())
+                        .seatNumber(each.getSeatNumber())
+                        .passengerId(each.getPassengerId())
+                        .ticketStatus(TicketStatusEnum.UNPAID.getCode())
+                        .build())
+                .toList();
+        saveBatch(ticketDOList);
+
         // 返回的结果
         Result<String> ticketOrderResult;
         // 订单详情集合
@@ -261,25 +271,24 @@ public class TicketServiceImpl implements TicketService {
                     .arrival(requestParam.getArrival())
                     .orderTime(new Date())
                     .source(SourceEnum.INTERNET.getCode())
-                    // TODO 创建用户上下文
-                    .username(MDC.get(UserConstant.USER_NAME_KEY))
+                    .username(UserContext.getUsername())
                     .trainId(Long.parseLong(requestParam.getTrainId()))
                     .ticketOrderItems(orderItemCreateRemoteReqDTOList)
                     .build();
             // 远程调用创建订单
             ticketOrderResult = ticketOrderRemoteService.createTicketOrder(orderCreateRemoteReqDTO);
             // 发送 RocketMQ 延时消息，指定时间后取消订单
-        }catch (Throwable ex) {
-            log.error("远程调用订单服务创建错误，请求参数: {}", JSON.toJSONString(requestParam),ex);
+        } catch (Throwable ex) {
+            log.error("远程调用订单服务创建错误，请求参数: {}", JSON.toJSONString(requestParam), ex);
             // TODO 回退锁定车票
             throw ex;
         }
         if (!ticketOrderResult.isSuccess()) {
-            log.error("远程调用订单服务创建失败，请求参数: {}",JSON.toJSONString(requestParam));
+            log.error("远程调用订单服务创建失败，请求参数: {}", JSON.toJSONString(requestParam));
             // TODO 回退锁定车票
             throw new ServiceException(ticketOrderResult.getMessage());
         }
-        return new TicketPurchaseRespDTO(ticketOrderResult.getData(),ticketOrderDetailResults);
+        return new TicketPurchaseRespDTO(ticketOrderResult.getData(), ticketOrderDetailResults);
     }
 
     /**
