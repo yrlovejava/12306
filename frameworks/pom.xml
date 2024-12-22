@@ -24,6 +24,7 @@
         <module>web</module>
         <module>bizs</module>
         <module>log</module>
+        <module>idempotent</module>
     </modules>
 
     <properties>

@@ -29,7 +29,7 @@ public class ILogPrintAspect {
     /**
      * 打印类或方法上的 {@link ILog}
      *
-     * @param joinPoint 切入点
+     * @param joinPoint 连接点
      * @return target执行结果
      * @throws Throwable 可能抛出的异常
      */
@@ -88,7 +88,7 @@ public class ILogPrintAspect {
     /**
      * 构造打印的入参
      *
-     * @param joinPoint 切入点
+     * @param joinPoint 连接点
      * @return 打印的入参
      */
     private Object[] buildInput(ProceedingJoinPoint joinPoint) {
