@@ -8,6 +8,7 @@ import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
 import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
+import com.squirrel.index12306.framework.starter.log.annotation.ILog;
 import com.squirrel.index12306.framework.starter.web.Results;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +40,7 @@ public class TicketController {
      * 购买车票
      * @param requestParam 购买车票请求参数
      */
+    @ILog
     @Operation(description = "购买车票")
     @PostMapping("/api/ticket-service/ticket/purchase")
     public Result<TicketPurchaseRespDTO> purchaseTickets(@RequestBody PurchaseTicketReqDTO requestParam) {
