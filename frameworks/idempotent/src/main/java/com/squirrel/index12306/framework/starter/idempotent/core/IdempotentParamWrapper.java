@@ -1,6 +1,7 @@
 package com.squirrel.index12306.framework.starter.idempotent.core;
 
 import com.squirrel.index12306.framework.starter.idempotent.annotation.Idempotent;
+import com.squirrel.index12306.framework.starter.idempotent.enums.IdempotentTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

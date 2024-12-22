@@ -150,7 +150,7 @@ public class StringRedisTemplateProxy implements DistributedCache{
         if (!CacheUtil.isNullOrBlank(result)) {
             return result;
         }
-        return this.loadAndSet(key,cacheLoader,timout,redisDistributedProperties.getValueTimeUnit(),false,null);
+        return this.loadAndSet(key,cacheLoader,timout,timeUnit,false,null);
     }
 
     /**
