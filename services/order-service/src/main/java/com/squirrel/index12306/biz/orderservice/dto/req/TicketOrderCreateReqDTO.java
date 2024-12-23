@@ -14,6 +14,12 @@ import java.util.List;
 public class TicketOrderCreateReqDTO {
 
     /**
+     * 用户 ID
+     */
+    @Schema(description = "用户ID")
+    private Long userId;
+
+    /**
      * 用户名
      */
     @Schema(description = "用户名")

@@ -20,6 +20,12 @@ import java.util.List;
 public class TicketOrderCreateRemoteReqDTO {
 
     /**
+     * 用户 ID
+     */
+    @Schema(description = "用户ID")
+    private String userId;
+
+    /**
      * 用户名
      */
     @Schema(description = "用户名")
@@ -54,6 +60,30 @@ public class TicketOrderCreateRemoteReqDTO {
      */
     @Schema(description = "下单时间")
     private Date orderTime;
+
+    /**
+     * 乘车日期
+     */
+    @Schema(description = "乘车日期")
+    private Date ridingDate;
+
+    /**
+     * 列车车次
+     */
+    @Schema(description = "列车车次")
+    private String trainNumber;
+
+    /**
+     * 出发时间
+     */
+    @Schema(description = "出发时间")
+    private Date departureTime;
+
+    /**
+     * 到达时间
+     */
+    @Schema(description = "到达时间")
+    private Date arrivalTime;
 
     /**
      * 订单明细

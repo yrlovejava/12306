@@ -273,6 +273,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
                     .arrival(requestParam.getArrival())
                     .orderTime(new Date())
                     .source(SourceEnum.INTERNET.getCode())
+                    .userId(UserContext.getUserId())
                     .username(UserContext.getUsername())
                     .trainId(Long.parseLong(requestParam.getTrainId()))
                     .ticketOrderItems(orderItemCreateRemoteReqDTOList)
