@@ -6,14 +6,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.squirrel.index12306.biz.ticketservice.common.enums.*;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.TicketDO;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationPriceDO;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationRelationDO;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.TicketMapper;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainMapper;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationPriceMapper;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationRelationMapper;
+import com.squirrel.index12306.biz.ticketservice.dao.entity.*;
+import com.squirrel.index12306.biz.ticketservice.dao.mapper.*;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.*;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
@@ -64,9 +58,9 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
     private final TrainStationPriceMapper trainStationPriceMapper;
     private final DistributedCache distributedCache;
     private final AbstractStrategyChoose abstractStrategyChoose;
-    private final TicketMapper ticketMapper;
     private final TicketOrderRemoteService ticketOrderRemoteService;
     private final PayRemoteService payRemoteService;
+    private final StationMapper stationMapper;
 
     /**
      * 根据条件查询车票
@@ -76,11 +70,19 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
      */
     @Override
     public TicketPageQueryRespDTO pageListTicketQuery(TicketPageQueryReqDTO requestParam) {
+        // 查找出发站
+        StationDO fromStationDO = stationMapper.selectOne(Wrappers.lambdaQuery(StationDO.class)
+                .eq(StationDO::getCode, requestParam.getFromStation())
+        );
+        // 查找到达站
+        StationDO toStation = stationMapper.selectOne(Wrappers.lambdaQuery(StationDO.class)
+                .eq(StationDO::getCode, requestParam.getToStation())
+        );
         // TODO 责任链模式 验证城市名称是否存在、不存在加载缓存等等
         // 通过mybatis-plus分页查询
         LambdaQueryWrapper<TrainStationRelationDO> queryWrapper = Wrappers.<TrainStationRelationDO>lambdaQuery()
-                .eq(TrainStationRelationDO::getStartRegion, requestParam.getFromStation())
-                .eq(TrainStationRelationDO::getEndRegion, requestParam.getToStation());
+                .eq(TrainStationRelationDO::getStartRegion, fromStationDO.getName())
+                .eq(TrainStationRelationDO::getEndRegion, toStation.getName());
         List<TrainStationRelationDO> trainStationRelationList = trainStationRelationMapper.selectList(queryWrapper);
         // 车次信息集合
         List<TicketListDTO> seatResults = new ArrayList<>();
