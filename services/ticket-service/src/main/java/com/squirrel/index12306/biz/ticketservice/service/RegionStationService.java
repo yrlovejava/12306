@@ -16,5 +16,12 @@ public interface RegionStationService {
      * @param requestParam 车站&城市查询参数
      * @return 车站&城市站点集合信息
      */
-    List<RegionStationQueryRespDTO> listRegionStationQuery(RegionStationQueryReqDTO requestParam);
+    List<RegionStationQueryRespDTO> listRegionStation(RegionStationQueryReqDTO requestParam);
+
+    /**
+     * 查询所有车站&城市站点集合信息
+     *
+     * @return 车站返回数据集合
+     */
+    List<RegionStationQueryRespDTO> listAllStation();
 }

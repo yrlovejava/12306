@@ -3,6 +3,7 @@ package com.squirrel.index12306.biz.ticketservice.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant;
 import com.squirrel.index12306.biz.ticketservice.common.enums.RegionStationQueryTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.RegionDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.StationDO;
@@ -11,6 +12,7 @@ import com.squirrel.index12306.biz.ticketservice.dao.mapper.StationMapper;
 import com.squirrel.index12306.biz.ticketservice.dto.req.RegionStationQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.RegionStationQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.RegionStationService;
+import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.common.enums.FlagEnum;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
@@ -18,6 +20,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static com.squirrel.index12306.biz.ticketservice.common.constant.Index12306Constant.ADVANCE_TICKET_DAY;
 
 /**
  * 地区以及车站接口实现层
@@ -28,6 +33,7 @@ public class RegionStationServiceImpl implements RegionStationService {
 
     private final RegionMapper regionMapper;
     private final StationMapper stationMapper;
+    private final DistributedCache distributedCache;
 
     /**
      * 查询车站&城市站点集合信息
@@ -36,7 +42,7 @@ public class RegionStationServiceImpl implements RegionStationService {
      * @return 车站&城市站点集合信息
      */
     @Override
-    public List<RegionStationQueryRespDTO> listRegionStationQuery(RegionStationQueryReqDTO requestParam) {
+    public List<RegionStationQueryRespDTO> listRegionStation(RegionStationQueryReqDTO requestParam) {
         // TODO 请求缓存
         if (StrUtil.isNotBlank(requestParam.getName())) {
             // 构造查询参数
@@ -65,5 +71,21 @@ public class RegionStationServiceImpl implements RegionStationService {
         };
         List<RegionDO> regionDOList = regionMapper.selectList(queryWrapper);
         return BeanUtil.convert(regionDOList, RegionStationQueryRespDTO.class);
+    }
+
+    /**
+     * 查询所有车站&城市站点集合信息
+     *
+     * @return 车站返回数据集合
+     */
+    @Override
+    public List<RegionStationQueryRespDTO> listAllStation() {
+        return distributedCache.get(
+                RedisKeyConstant.STATION_ALL,
+                List.class,
+                () -> BeanUtil.convert(stationMapper.selectList(Wrappers.emptyWrapper()),RegionStationQueryRespDTO.class),
+                ADVANCE_TICKET_DAY,
+                TimeUnit.DAYS
+        );
     }
 }
