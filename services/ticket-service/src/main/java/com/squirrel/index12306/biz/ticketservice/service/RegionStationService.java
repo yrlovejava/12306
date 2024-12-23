@@ -2,6 +2,7 @@ package com.squirrel.index12306.biz.ticketservice.service;
 
 import com.squirrel.index12306.biz.ticketservice.dto.req.RegionStationQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.RegionStationQueryRespDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.resp.StationQueryRespDTO;
 
 import java.util.List;
 
@@ -23,5 +24,5 @@ public interface RegionStationService {
      *
      * @return 车站返回数据集合
      */
-    List<RegionStationQueryRespDTO> listAllStation();
+    List<StationQueryRespDTO> listAllStation();
 }

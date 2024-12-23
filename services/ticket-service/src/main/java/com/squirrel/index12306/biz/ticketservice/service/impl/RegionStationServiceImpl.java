@@ -11,6 +11,7 @@ import com.squirrel.index12306.biz.ticketservice.dao.mapper.RegionMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.StationMapper;
 import com.squirrel.index12306.biz.ticketservice.dto.req.RegionStationQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.RegionStationQueryRespDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.resp.StationQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.RegionStationService;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.common.enums.FlagEnum;
@@ -79,11 +80,11 @@ public class RegionStationServiceImpl implements RegionStationService {
      * @return 车站返回数据集合
      */
     @Override
-    public List<RegionStationQueryRespDTO> listAllStation() {
+    public List<StationQueryRespDTO> listAllStation() {
         return distributedCache.get(
                 RedisKeyConstant.STATION_ALL,
                 List.class,
-                () -> BeanUtil.convert(stationMapper.selectList(Wrappers.emptyWrapper()),RegionStationQueryRespDTO.class),
+                () -> BeanUtil.convert(stationMapper.selectList(Wrappers.emptyWrapper()),StationQueryRespDTO.class),
                 ADVANCE_TICKET_DAY,
                 TimeUnit.DAYS
         );
