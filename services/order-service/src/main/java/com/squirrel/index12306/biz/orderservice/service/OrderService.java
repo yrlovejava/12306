@@ -11,12 +11,20 @@ import com.squirrel.index12306.biz.orderservice.mq.event.PayResultCallbackOrderE
 public interface OrderService {
 
     /**
-     * 查询火车票订单详情
+     * 根据订单号查询车票订单
      *
      * @param orderSn 订单号
      * @return 订单详情
      */
-    TicketOrderDetailRespDTO queryTicketOrder(String orderSn);
+    TicketOrderDetailRespDTO queryTicketOrderByOrderSn(String orderSn);
+
+    /**
+     * 根据用户id查询车票订单
+     *
+     * @param userId 用户id
+     * @return 订单详情
+     */
+    TicketOrderDetailRespDTO queryTicketOrderByUserId(String userId);
 
     /**
      * 创建火车票订单

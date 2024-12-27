@@ -9,7 +9,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>index12306-idempotent-spirng-boot-starter</artifactId>
+    <artifactId>index12306-idempotent-spring-boot-starter</artifactId>
 
     <dependencies>
         <dependency>

@@ -17,6 +17,7 @@ import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderPassengerDet
 import com.squirrel.index12306.biz.orderservice.mq.event.PayResultCallbackOrderEvent;
 import com.squirrel.index12306.biz.orderservice.service.OrderItemService;
 import com.squirrel.index12306.biz.orderservice.service.OrderService;
+import com.squirrel.index12306.biz.orderservice.service.orderid.OrderIdGeneratorManager;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
@@ -53,8 +54,8 @@ public class OrderServiceImpl implements OrderService {
      * @return 订单详情
      */
     @Override
-    public TicketOrderDetailRespDTO queryTicketOrder(String orderSn) {
-        // 查询数据库中订单信息
+    public TicketOrderDetailRespDTO queryTicketOrderByOrderSn(String orderSn) {
+        // 根据订单号查询数据库中订单信息
         OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
                 .eq(OrderDO::getOrderSn, orderSn));
         // 转换为订单详情返回参数
@@ -62,6 +63,28 @@ public class OrderServiceImpl implements OrderService {
         // 查询数据库中订单明细
         List<OrderItemDO> orderItemDOList = orderItemMapper.selectList(Wrappers.lambdaQuery(OrderItemDO.class)
                 .eq(OrderItemDO::getOrderSn, orderSn));
+        // 转换订单明细为乘车人详细返回信息
+        result.setPassengerDetails(BeanUtil.convert(orderItemDOList, TicketOrderPassengerDetailRespDTO.class));
+        // 返回结果
+        return result;
+    }
+
+    /**
+     * 根据用户id查询车票订单
+     *
+     * @param userId 用户id
+     * @return 订单详情
+     */
+    @Override
+    public TicketOrderDetailRespDTO queryTicketOrderByUserId(String userId) {
+        // 根据用户id查询数据库中的订单信息
+        OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
+                .eq(OrderDO::getUserId, userId));
+        // 转换为订单详情返回参数
+        TicketOrderDetailRespDTO result = BeanUtil.convert(orderDO, TicketOrderDetailRespDTO.class);
+        // 查询数据库中订单明细
+        List<OrderItemDO> orderItemDOList = orderItemMapper.selectList(Wrappers.lambdaQuery(OrderItemDO.class)
+                .eq(OrderItemDO::getUserId, userId));
         // 转换订单明细为乘车人详细返回信息
         result.setPassengerDetails(BeanUtil.convert(orderItemDOList, TicketOrderPassengerDetailRespDTO.class));
         // 返回结果
@@ -77,8 +100,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String createTicketOrder(TicketOrderCreateReqDTO requestParam) {
-        // 使用雪花算法生成订单号
-        String orderSn = SnowflakeIdUtil.nextIdStr();
+        // 通过基因法将用户 ID 融入到订单号
+        String orderSn = OrderIdGeneratorManager.generateId(requestParam.getUserId());
         // 构建订单实体
         OrderDO orderDO = OrderDO.builder()
                 .orderSn(orderSn)
@@ -89,6 +112,7 @@ public class OrderServiceImpl implements OrderService {
                 .source(requestParam.getSource())
                 .status(OrderStatusEnum.PENDING_PAYMENT.getStatus())
                 .username(requestParam.getUsername())
+                .userId(requestParam.getUserId())
                 .build();
         // 插入数据库
         orderMapper.insert(orderDO);

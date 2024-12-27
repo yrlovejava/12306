@@ -90,11 +90,11 @@
             <artifactId>shardingsphere-jdbc-core</artifactId>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>com.squirrel</groupId>-->
-<!--            <artifactId>index12306-idempotent-spring-boot-starter</artifactId>-->
-<!--            <version>${project.version}</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.squirrel</groupId>
+            <artifactId>index12306-idempotent-spring-boot-starter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>io.github.openfeign</groupId>
