@@ -58,7 +58,7 @@ public class ILogPrintAspect {
             ILog logAnnotation = Optional.ofNullable(targetMethod.getAnnotation(ILog.class))
                     .orElse(joinPoint.getTarget().getClass().getAnnotation(ILog.class));
             if (logAnnotation != null) {
-                ILogPrint logPrint = new ILogPrint();
+                ILogPrintDTO logPrint = new ILogPrintDTO();
                 logPrint.setBeginTime(beginTime);// 开始执行时间
                 // 如果打印结果要包含入参
                 if (logAnnotation.input()) {
@@ -111,27 +111,5 @@ public class ILogPrintAspect {
             }
         }
         return printArgs;
-    }
-
-    /**
-     * 内部类: 日志打印类
-     */
-    @Data
-    private static class ILogPrint {
-
-        /**
-         * 开始时间
-         */
-        private String beginTime;
-
-        /**
-         * 输入入参
-         */
-        private Object[] inputParams;
-
-        /**
-         * 输出参数
-         */
-        private Object outputParams;
     }
 }
