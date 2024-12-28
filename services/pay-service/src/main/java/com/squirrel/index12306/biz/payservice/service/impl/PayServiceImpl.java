@@ -13,6 +13,7 @@ import com.squirrel.index12306.biz.payservice.dto.base.PayResponse;
 import com.squirrel.index12306.biz.payservice.mq.event.PayResultCallbackOrderEvent;
 import com.squirrel.index12306.biz.payservice.mq.producer.PayResultCallbackOrderSendProduce;
 import com.squirrel.index12306.biz.payservice.service.PayService;
+import com.squirrel.index12306.biz.payservice.service.payid.PayIdGeneratorManager;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
@@ -56,6 +57,9 @@ public class PayServiceImpl implements PayService {
         PayDO insertPay = BeanUtil.convert(result, PayDO.class);
         // 设置支付单状态为等待付款
         insertPay.setStatus(TradeStatusEnum.WAIT_BUYER_PAY.tradeCode());
+        // 设置全局唯一支付流水号
+        String paySn = PayIdGeneratorManager.generateId(requestParam.getOrderSn());
+        insertPay.setPaySn(paySn);
         // 计算精确的金额
         insertPay.setTotalAmount(requestParam.getTotalAmount().multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).intValue());
         // 插入数据库
