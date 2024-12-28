@@ -114,10 +114,24 @@ public class PayServiceImpl implements PayService {
      * @return 支付单详情
      */
     @Override
-    public PayInfoRespDTO getPayInfo(String orderSn) {
-        // 查询数据库中支付数据
+    public PayInfoRespDTO getPayInfoByOrderSn(String orderSn) {
+        // 根据订单号查询数据库中支付数据
         PayDO payDO = payMapper.selectOne(Wrappers.lambdaQuery(PayDO.class)
                 .eq(PayDO::getOrderSn, orderSn));
         return BeanUtil.convert(payDO,PayInfoRespDTO.class);
+    }
+
+    /**
+     * 跟据支付流水号查询支付单详情
+     *
+     * @param paySn 支付单流水号
+     * @return 支付单详情
+     */
+    @Override
+    public PayInfoRespDTO getPayInfoByPaySn(String paySn) {
+        // 根据支付流水号查询数据库中支付单详情
+        PayDO payDO = payMapper.selectOne(Wrappers.lambdaQuery(PayDO.class)
+                .eq(PayDO::getPaySn, paySn));
+        return BeanUtil.convert(payDO, PayInfoRespDTO.class);
     }
 }
