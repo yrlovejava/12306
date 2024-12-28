@@ -2,8 +2,10 @@ package com.squirrel.index12306.biz.orderservice.service;
 
 import com.squirrel.index12306.biz.orderservice.dto.domain.OrderStatusReversalDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderPageQueryReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.mq.event.PayResultCallbackOrderEvent;
+import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 
 /**
  * 订单接口层
@@ -19,12 +21,12 @@ public interface OrderService {
     TicketOrderDetailRespDTO queryTicketOrderByOrderSn(String orderSn);
 
     /**
-     * 根据用户id查询车票订单
+     * 根据用户id分页查询车票订单
      *
-     * @param userId 用户id
+     * @param requestParam 分页查询条件
      * @return 订单详情
      */
-    TicketOrderDetailRespDTO queryTicketOrderByUserId(String userId);
+    PageResponse<TicketOrderDetailRespDTO> pageTicketOrder(TicketOrderPageQueryReqDTO requestParam);
 
     /**
      * 创建火车票订单

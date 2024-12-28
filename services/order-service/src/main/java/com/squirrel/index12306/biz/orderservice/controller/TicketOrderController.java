@@ -1,8 +1,10 @@
 package com.squirrel.index12306.biz.orderservice.controller;
 
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderPageQueryReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.service.OrderService;
+import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.web.Results;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,14 +33,14 @@ public class TicketOrderController {
     }
 
     /**
-     * 根据用户id查询车票订单
-     * @param userId 用户id
+     * 根据用户id分页查询车票订单
+     * @param requestParam 分页查询条件
      * @return Result<TicketOrderDetailRespDTO>
      */
-    @Operation(summary = "根据用户id查询订单")
-    @GetMapping("/api/order-service/order/ticket/query/userid")
-    public Result<TicketOrderDetailRespDTO> queryTicketOrderByUserId(@RequestParam(value = "userid")String userId) {
-        return Results.success(orderService.queryTicketOrderByUserId(userId));
+    @Operation(summary = "根据用户id分页查询车票订单")
+    @GetMapping("/api/order-service/order/ticket/page")
+    public Result<PageResponse<TicketOrderDetailRespDTO>> queryTicketOrderByUserId(TicketOrderPageQueryReqDTO requestParam) {
+        return Results.success(orderService.pageTicketOrder(requestParam));
     }
 
     /**

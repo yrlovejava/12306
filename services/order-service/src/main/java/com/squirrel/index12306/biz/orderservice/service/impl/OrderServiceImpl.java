@@ -2,7 +2,10 @@ package com.squirrel.index12306.biz.orderservice.service.impl;
 
 import cn.hutool.core.text.StrBuilder;
 import com.alibaba.fastjson2.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.squirrel.index12306.biz.orderservice.common.enums.OrderCanalErrorCodeEnum;
 import com.squirrel.index12306.biz.orderservice.common.enums.OrderStatusEnum;
 import com.squirrel.index12306.biz.orderservice.dao.entity.OrderDO;
@@ -12,6 +15,7 @@ import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderMapper;
 import com.squirrel.index12306.biz.orderservice.dto.domain.OrderStatusReversalDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderItemCreateReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderPageQueryReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderPassengerDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.mq.event.PayResultCallbackOrderEvent;
@@ -21,6 +25,8 @@ import com.squirrel.index12306.biz.orderservice.service.orderid.OrderIdGenerator
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
+import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
+import com.squirrel.index12306.framework.starter.database.toolkit.PageUtil;
 import com.squirrel.index12306.framework.starter.distributedid.toolkit.SnowflakeIdUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,25 +76,31 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 根据用户id查询车票订单
+     * 根据用户id分页查询车票订单
      *
-     * @param userId 用户id
+     * @param requestParam 分页查询参数
      * @return 订单详情
      */
     @Override
-    public TicketOrderDetailRespDTO queryTicketOrderByUserId(String userId) {
+    public PageResponse<TicketOrderDetailRespDTO> pageTicketOrder(TicketOrderPageQueryReqDTO requestParam) {
+        LambdaQueryWrapper<OrderDO> queryWrapper = Wrappers.lambdaQuery(OrderDO.class)
+                .eq(OrderDO::getUserId, requestParam.getUserId())
+                .orderByDesc(OrderDO::getOrderTime);
         // 根据用户id查询数据库中的订单信息
-        OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
-                .eq(OrderDO::getUserId, userId));
-        // 转换为订单详情返回参数
-        TicketOrderDetailRespDTO result = BeanUtil.convert(orderDO, TicketOrderDetailRespDTO.class);
-        // 查询数据库中订单明细
-        List<OrderItemDO> orderItemDOList = orderItemMapper.selectList(Wrappers.lambdaQuery(OrderItemDO.class)
-                .eq(OrderItemDO::getUserId, userId));
-        // 转换订单明细为乘车人详细返回信息
-        result.setPassengerDetails(BeanUtil.convert(orderItemDOList, TicketOrderPassengerDetailRespDTO.class));
-        // 返回结果
-        return result;
+        IPage<OrderDO> orderPage = orderMapper.selectPage(PageUtil.convert(requestParam), queryWrapper);
+        // 封装返回数据
+        return PageUtil.convert(orderPage, each -> {
+            // 转换为订单详情返回参数
+            TicketOrderDetailRespDTO result = BeanUtil.convert(each, TicketOrderDetailRespDTO.class);
+            // 查询数据库中订单明细
+            LambdaQueryWrapper<OrderItemDO> orderItemQueryWrapper = Wrappers.lambdaQuery(OrderItemDO.class)
+                    .eq(OrderItemDO::getUserId, requestParam.getUserId());
+            List<OrderItemDO> orderItemDOList = orderItemMapper.selectList(orderItemQueryWrapper);
+            // 转换订单明细为乘车人详细返回信息
+            result.setPassengerDetails(BeanUtil.convert(orderItemDOList, TicketOrderPassengerDetailRespDTO.class));
+            // 返回结果
+            return result;
+        });
     }
 
     /**
