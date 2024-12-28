@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.squirrel.index12306.biz.userservice.common.enums.UserChainMarkEnum;
 import com.squirrel.index12306.biz.userservice.dao.entity.UserDO;
 import com.squirrel.index12306.biz.userservice.dao.mapper.UserMapper;
 import com.squirrel.index12306.biz.userservice.dto.req.UserLoginReqDTO;
@@ -15,6 +16,7 @@ import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
+import com.squirrel.index12306.framework.starter.designpattern.chain.AbstractChainContext;
 import com.squirrel.index12306.frameworks.starter.user.core.UserInfoDTO;
 import com.squirrel.index12306.frameworks.starter.user.toolkit.JWTUtil;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class UserLoginServiceImpl implements UserLoginService {
 
     private final UserMapper userMapper;
     private final DistributedCache distributedCache;
+    private final AbstractChainContext abstractChainContext;
 
     /**
      * 登录操作
@@ -99,7 +102,7 @@ public class UserLoginServiceImpl implements UserLoginService {
      */
     @Override
     public UserRegisterRespDTO register(UserRegisterReqDTO requestParam) {
-        // TODO 责任链模式校验用户名，身份证、手机号格式等
+        abstractChainContext.handler(UserChainMarkEnum.USER_REGISTER_FILTER.name(),requestParam);
         if (!hasUsername(requestParam.getUsername())) {
             throw new ClientException("用户名已存在");
         }
