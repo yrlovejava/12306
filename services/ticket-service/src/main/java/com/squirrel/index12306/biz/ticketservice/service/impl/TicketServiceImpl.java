@@ -28,6 +28,7 @@ import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
+import com.squirrel.index12306.framework.starter.designpattern.chain.AbstractChainContext;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
 import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +65,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
     private final StationMapper stationMapper;
     private final DelayCloseOrderSendProducer delayCloseOrderSendProducer;
     private final TrainSeatTypeSelector trainSeatTypeSelector;
+    private final AbstractChainContext<PurchaseTicketReqDTO> abstractChainContext;
 
     /**
      * 根据条件查询车票
@@ -210,6 +212,8 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
     @Override
     @Transactional(rollbackFor = Throwable.class)
     public TicketPurchaseRespDTO purchaseTickets(PurchaseTicketReqDTO requestParam) {
+        // 责任链模式，验证 0:参数必填 1:参数正确性 2:列车车次余量是否充足 3:乘客是否已买当前车次等
+        abstractChainContext.handler(TicketChainMarkEnum.TRAIN_PURCHASE_TICKET_FILTER.name(),requestParam);
         String trainId = requestParam.getTrainId();
         // 在 redis 中查询列车信息
         TrainDO trainDO = distributedCache.get(
