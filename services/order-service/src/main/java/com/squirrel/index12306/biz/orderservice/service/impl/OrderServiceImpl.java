@@ -5,13 +5,14 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.squirrel.index12306.biz.orderservice.common.enums.OrderCanalErrorCodeEnum;
 import com.squirrel.index12306.biz.orderservice.common.enums.OrderStatusEnum;
 import com.squirrel.index12306.biz.orderservice.dao.entity.OrderDO;
 import com.squirrel.index12306.biz.orderservice.dao.entity.OrderItemDO;
+import com.squirrel.index12306.biz.orderservice.dao.entity.OrderPassengerRelationDO;
 import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderItemMapper;
 import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderMapper;
+import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderPassengerRelationMapper;
 import com.squirrel.index12306.biz.orderservice.dto.domain.OrderStatusReversalDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderItemCreateReqDTO;
@@ -20,6 +21,7 @@ import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDT
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderPassengerDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.mq.event.PayResultCallbackOrderEvent;
 import com.squirrel.index12306.biz.orderservice.service.OrderItemService;
+import com.squirrel.index12306.biz.orderservice.service.OrderPassengerRelationService;
 import com.squirrel.index12306.biz.orderservice.service.OrderService;
 import com.squirrel.index12306.biz.orderservice.service.orderid.OrderIdGeneratorManager;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
@@ -27,7 +29,6 @@ import com.squirrel.index12306.framework.starter.convention.exception.ClientExce
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.database.toolkit.PageUtil;
-import com.squirrel.index12306.framework.starter.distributedid.toolkit.SnowflakeIdUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -36,7 +37,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -51,6 +51,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final OrderItemService orderItemService;
+    private final OrderPassengerRelationService orderPassengerRelationService;
+    private final OrderPassengerRelationMapper orderPassengerRelationMapper;
     private final RedissonClient redissonClient;
 
     /**
@@ -128,11 +130,13 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         // 插入数据库
         orderMapper.insert(orderDO);
-        // 获取订单明细
+        // 获取订单明细和订单和乘车人的关系
         List<TicketOrderItemCreateReqDTO> ticketOrderItems =
                 requestParam.getTicketOrderItems();
         List<OrderItemDO> orderItemDOList = new ArrayList<>();
+        List<OrderPassengerRelationDO> orderPassengerRelationDOList = new ArrayList<>();
         ticketOrderItems.forEach(each -> {
+            // 订单明细
             OrderItemDO orderItemDO = OrderItemDO.builder()
                     .orderSn(orderSn)
                     .trainId(requestParam.getTrainId())
@@ -146,9 +150,19 @@ public class OrderServiceImpl implements OrderService {
                     .status(0)
                     .build();
             orderItemDOList.add(orderItemDO);
+            // 订单和乘车人关系
+            OrderPassengerRelationDO orderPassengerRelationDO = OrderPassengerRelationDO.builder()
+                    .idType(each.getIdType())
+                    .idCard(each.getIdCard())
+                    .orderSn(orderSn)
+                    .build();
+            orderPassengerRelationDOList.add(orderPassengerRelationDO);
         });
         // 批量插入数据库
+        // 订单明细
         orderItemService.saveBatch(orderItemDOList);
+        // 订单和乘车人的关系
+        orderPassengerRelationDOList.forEach(orderPassengerRelationMapper::insert);
         // 返回订单号
         return orderSn;
     }
