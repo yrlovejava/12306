@@ -55,6 +55,9 @@ public class TokenValidateGatewayFilterFactory extends AbstractGatewayFilterFact
                     httpHeaders.set(UserConstant.USER_ID_KEY, userInfo.getUserId());
                     httpHeaders.set(UserConstant.USER_NAME_KEY, userInfo.getUsername());
                     httpHeaders.set(UserConstant.REAL_NAME_KEY, URLEncoder.encode(userInfo.getRealName(), StandardCharsets.UTF_8));
+                    if (Objects.equals(requestPath, DELETION_PATH)) {
+                        httpHeaders.set(UserConstant.USER_TOKEN_KEY, token);
+                    }
                 });
                 return chain.filter(exchange.mutate().request(builder.build()).build());
             }
