@@ -2,6 +2,7 @@ package com.squirrel.index12306.biz.userservice.controller;
 
 import com.squirrel.index12306.biz.userservice.dto.req.PassengerRemoveReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.req.PassengerReqDTO;
+import com.squirrel.index12306.biz.userservice.dto.resp.PassengerActualRespDTO;
 import com.squirrel.index12306.biz.userservice.dto.resp.PassengerRespDTO;
 import com.squirrel.index12306.biz.userservice.service.PassengerService;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
@@ -53,7 +54,7 @@ public class PassengerController {
      * @return 乘车人列表
      */
     @GetMapping("/api/user-service/inner/passenger/actual/query/ids")
-    public Result<List<PassengerRespDTO>> listPassengerQueryByIds(@RequestParam("username") String username, @RequestParam("ids")List<Long> ids) {
+    public Result<List<PassengerActualRespDTO>> listPassengerQueryByIds(@RequestParam("username") String username, @RequestParam("ids")List<Long> ids) {
         return Results.success(passengerService.listPassengerQueryByIds(username, ids));
     }
 

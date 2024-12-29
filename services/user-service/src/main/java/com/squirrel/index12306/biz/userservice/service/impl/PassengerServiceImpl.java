@@ -6,6 +6,7 @@ import com.squirrel.index12306.biz.userservice.dao.entity.PassengerDO;
 import com.squirrel.index12306.biz.userservice.dao.mapper.PassengerMapper;
 import com.squirrel.index12306.biz.userservice.dto.req.PassengerRemoveReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.req.PassengerReqDTO;
+import com.squirrel.index12306.biz.userservice.dto.resp.PassengerActualRespDTO;
 import com.squirrel.index12306.biz.userservice.dto.resp.PassengerRespDTO;
 import com.squirrel.index12306.biz.userservice.service.PassengerService;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
@@ -45,11 +46,11 @@ public class PassengerServiceImpl implements PassengerService {
      * @return 乘车人返回列表
      */
     @Override
-    public List<PassengerRespDTO> listPassengerQueryByIds(String username, List<Long> ids) {
+    public List<PassengerActualRespDTO> listPassengerQueryByIds(String username, List<Long> ids) {
         List<PassengerDO> passengerDOList = passengerMapper.selectList(Wrappers.lambdaQuery(PassengerDO.class)
                 .eq(PassengerDO::getUsername, username)
                 .in(PassengerDO::getId, ids));
-        return BeanUtil.convert(passengerDOList, PassengerRespDTO.class);
+        return BeanUtil.convert(passengerDOList, PassengerActualRespDTO.class);
     }
 
     /**
