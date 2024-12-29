@@ -34,17 +34,19 @@ public class SeatServiceImpl implements SeatService {
      *
      * @param trainId        列车 ID
      * @param carriageNumber 车厢号
-     * @param departure 出发站
-     * @param arrival 到达站
+     * @param seatType       座位类型
+     * @param departure      出发站
+     * @param arrival        到达站
      * @return 可用座位集合
      */
     @Override
-    public List<String> listAvailableSeat(String trainId, String carriageNumber,String departure,String arrival) {
+    public List<String> listAvailableSeat(String trainId, String carriageNumber, Integer seatType, String departure, String arrival) {
         LambdaQueryWrapper<SeatDO> queryWrapper = Wrappers.lambdaQuery(SeatDO.class)
                 .eq(SeatDO::getTrainId, trainId)
                 .eq(SeatDO::getCarriageNumber, carriageNumber)
-                .eq(SeatDO::getStartStation,departure)
-                .eq(SeatDO::getEndStation,arrival)
+                .eq(SeatDO::getSeatType,seatType)
+                .eq(SeatDO::getStartStation, departure)
+                .eq(SeatDO::getEndStation, arrival)
                 .eq(SeatDO::getSeatStatus, SeatStatusEnum.AVAILABLE.getCode());
         List<SeatDO> seatDOList = seatMapper.selectList(queryWrapper);
         return seatDOList.stream().map(SeatDO::getSeatNumber).collect(Collectors.toList());
