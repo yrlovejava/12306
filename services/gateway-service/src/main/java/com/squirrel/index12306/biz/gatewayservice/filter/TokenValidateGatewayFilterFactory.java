@@ -41,6 +41,7 @@ public class TokenValidateGatewayFilterFactory extends AbstractGatewayFilterFact
                 // 如果合法
                 // 获取Token
                 String token = request.getHeaders().getFirst("Authorization");
+                // TODO 需要验证 Token 是否有效，有可能用户注销了账户，但是 Token 有效期还未过
                 UserInfoDTO userInfo = JWTUtil.parseJwtToken(token);
                 // 如果userInfo不合法
                 if (!validateToken(userInfo)) {
