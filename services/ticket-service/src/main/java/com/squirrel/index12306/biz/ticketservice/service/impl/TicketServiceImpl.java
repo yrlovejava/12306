@@ -14,6 +14,8 @@ import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketOrderDetailRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPurchaseRespDTO;
+import com.squirrel.index12306.biz.ticketservice.mq.event.DelayCloseOrderEvent;
+import com.squirrel.index12306.biz.ticketservice.mq.producer.DelayCloseOrderSendProducer;
 import com.squirrel.index12306.biz.ticketservice.remote.PayRemoteService;
 import com.squirrel.index12306.biz.ticketservice.remote.TicketOrderRemoteService;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
@@ -22,7 +24,6 @@ import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreat
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
-import com.squirrel.index12306.framework.starter.bases.constant.UserConstant;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
@@ -61,6 +62,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
     private final TicketOrderRemoteService ticketOrderRemoteService;
     private final PayRemoteService payRemoteService;
     private final StationMapper stationMapper;
+    private final DelayCloseOrderSendProducer delayCloseOrderSendProducer;
 
     /**
      * 根据条件查询车票
@@ -280,7 +282,12 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
                     .build();
             // 远程调用创建订单
             ticketOrderResult = ticketOrderRemoteService.createTicketOrder(orderCreateRemoteReqDTO);
+            if(!ticketOrderResult.isSuccess() || StrUtil.isBlank(ticketOrderResult.getData())){
+                log.error("订单服务调用失败，返回结果：{}", ticketOrderResult.getMessage());
+                throw new ServiceException("订单服务调用失败");
+            }
             // 发送 RocketMQ 延时消息，指定时间后取消订单
+            delayCloseOrderSendProducer.sendMessage(new DelayCloseOrderEvent(ticketOrderResult.getData()));
         } catch (Throwable ex) {
             log.error("远程调用订单服务创建错误，请求参数: {}", JSON.toJSONString(requestParam), ex);
             // TODO 回退锁定车票
