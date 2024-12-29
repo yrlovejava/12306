@@ -23,6 +23,7 @@ import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderCreateRem
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select.TrainSeatTypeSelector;
 import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
@@ -58,11 +59,11 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
     private final TrainStationRelationMapper trainStationRelationMapper;
     private final TrainStationPriceMapper trainStationPriceMapper;
     private final DistributedCache distributedCache;
-    private final AbstractStrategyChoose abstractStrategyChoose;
     private final TicketOrderRemoteService ticketOrderRemoteService;
     private final PayRemoteService payRemoteService;
     private final StationMapper stationMapper;
     private final DelayCloseOrderSendProducer delayCloseOrderSendProducer;
+    private final TrainSeatTypeSelector trainSeatTypeSelector;
 
     /**
      * 根据条件查询车票
@@ -219,11 +220,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
                 TimeUnit.DAYS
         );
         // 使用策略模式购票
-        List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults =
-                abstractStrategyChoose.chooseAndExecuteResp(
-                        VehicleTypeEnum.findNameByCode(trainDO.getTrainType()) +
-                                VehicleSeatTypeEnum.findNameByCode(requestParam.getPassengers().get(0).getSeatType()),
-                        requestParam);
+        List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults = trainSeatTypeSelector.select(trainDO.getTrainType(), requestParam);
         // 批量插入车票到数据库
         List<TicketDO> ticketDOList = trainPurchaseTicketResults.stream()
                 .map(each -> TicketDO.builder()

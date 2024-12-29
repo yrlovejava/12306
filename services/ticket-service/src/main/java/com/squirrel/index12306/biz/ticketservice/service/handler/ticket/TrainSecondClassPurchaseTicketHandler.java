@@ -2,8 +2,8 @@ package com.squirrel.index12306.biz.ticketservice.service.handler.ticket;
 
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
-import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.AbstractTrainPurchaseTicketTemplate;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.SelectSeatDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 
 import java.util.List;
@@ -19,7 +19,7 @@ public class TrainSecondClassPurchaseTicketHandler extends AbstractTrainPurchase
     }
 
     @Override
-    protected List<TrainPurchaseTicketRespDTO> selectSeats(PurchaseTicketReqDTO requestParam) {
+    protected List<TrainPurchaseTicketRespDTO> selectSeats(SelectSeatDTO requestParam) {
         return null;
     }
 }

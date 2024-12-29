@@ -1,50 +1,29 @@
 package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base;
 
 import cn.hutool.core.collection.CollUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationDO;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationPriceDO;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationMapper;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationPriceMapper;
-import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
-import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
-import com.squirrel.index12306.biz.ticketservice.remote.UserRemoteService;
-import com.squirrel.index12306.biz.ticketservice.remote.dto.PassengerRespDTO;
+import cn.hutool.core.util.StrUtil;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.SelectSeatDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
-import com.squirrel.index12306.biz.ticketservice.toolkit.StationCalculateUtil;
 import com.squirrel.index12306.framework.starter.bases.ApplicationContextHolder;
-import com.squirrel.index12306.framework.starter.bases.constant.UserConstant;
-import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
-import com.squirrel.index12306.framework.starter.convention.result.Result;
+import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractExecuteStrategy;
-import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-import static com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum.*;
+import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_STATION_REMAINING_TICKET;
 
 /**
  * 抽象高铁购票模板基础服务
  */
 @Slf4j
 @RequiredArgsConstructor
-public abstract class AbstractTrainPurchaseTicketTemplate implements ApplicationRunner, IPurchaseTicket, AbstractExecuteStrategy<PurchaseTicketReqDTO, List<TrainPurchaseTicketRespDTO>> {
+public abstract class AbstractTrainPurchaseTicketTemplate implements CommandLineRunner, IPurchaseTicket, AbstractExecuteStrategy<SelectSeatDTO, List<TrainPurchaseTicketRespDTO>> {
 
-    private SeatMapper seatMapper;
-    private TrainStationMapper trainStationMapper;
-    private UserRemoteService userRemoteService;
-    private TrainStationPriceMapper trainStationPriceMapper;
+    private DistributedCache distributedCache;
 
     /**
      * 执行策略，这里是购票策略
@@ -52,71 +31,23 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements Application
      * @return List<TrainPurchaseTicketRespDTO> 乘车人和对应的座位
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public List<TrainPurchaseTicketRespDTO> executeResp(PurchaseTicketReqDTO requestParam) {
+    public List<TrainPurchaseTicketRespDTO> executeResp(SelectSeatDTO requestParam) {
         // TODO 后续逻辑全部转换为 LUA 缓存原子操作
         // 选择座位，有子类具体实现
         List<TrainPurchaseTicketRespDTO> actualResult = selectSeats(requestParam);
-        if (CollUtil.isEmpty(actualResult)) {
-            throw new ServiceException("站点余票不足，请尝试更换座位类型或选择其它站点");
+        // 扣减车厢余票缓存，扣减站点余票缓存
+        if(CollUtil.isNotEmpty(actualResult)){
+            // 列车id
+            String trainId = requestParam.getRequestParam().getTrainId();
+            // 出发站
+            String departure = requestParam.getRequestParam().getDeparture();
+            // 到达站
+            String arrival = requestParam.getRequestParam().getArrival();
+            // redis中车辆余票key后缀: 列车ID_出发站_到达站
+            String keySuffix = StrUtil.join("_", trainId, departure, arrival);
+            StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
+            stringRedisTemplate.opsForHash().increment(TRAIN_STATION_REMAINING_TICKET + keySuffix, String.valueOf(requestParam.getSeatType()), -actualResult.size());
         }
-        // 查询车站出发站-终点站座位价格
-        LambdaQueryWrapper<TrainStationPriceDO> lambdaQueryWrapper = Wrappers.lambdaQuery(TrainStationPriceDO.class)
-                .eq(TrainStationPriceDO::getTrainId, requestParam.getTrainId())
-                .eq(TrainStationPriceDO::getDeparture, requestParam.getDeparture())
-                .eq(TrainStationPriceDO::getArrival, requestParam.getArrival())
-                .eq(TrainStationPriceDO::getSeatType, requestParam.getPassengers().get(0).getSeatType());
-        TrainStationPriceDO trainStationPriceDO = trainStationPriceMapper.selectOne(lambdaQueryWrapper);
-        // 获取乘车人的id集合
-        List<String> passengerIds = actualResult.stream()
-                .map(TrainPurchaseTicketRespDTO::getPassengerId)
-                .toList();
-        Result<List<PassengerRespDTO>> passengerRemoteResult;
-        List<PassengerRespDTO> passengerRemoteResultList;
-        try{
-            // 查询乘车人信息
-            passengerRemoteResult = userRemoteService.listPassengerQueryByIds(
-                    UserContext.getUsername(), passengerIds);
-            if(passengerRemoteResult.isSuccess() && CollUtil.isNotEmpty(passengerRemoteResultList = passengerRemoteResult.getData())) {
-                // 选择座位的时候，PassengerInfo 中只有乘客id，这里需要给每一个乘车人赋值剩余信息
-                actualResult.forEach(each -> {
-                    String passengerId = each.getPassengerId();
-                    passengerRemoteResultList.stream()
-                            .filter(item -> Objects.equals(item.getId(),passengerId))
-                            .findFirst()
-                            .ifPresent(passenger -> {
-                                each.setIdCard(passenger.getIdCard());// 证件号
-                                each.setPhone(passenger.getPhone());// 手机号
-                                each.setSeatType(passenger.getDiscountType());// 席别类型
-                                each.setIdType(passenger.getIdType());// 证件类型
-                                each.setRealName(passenger.getRealName());// 真实姓名
-                            });
-                    each.setAmount(trainStationPriceDO.getPrice());
-                });
-            }
-        }catch (Throwable ex) {
-            log.error("用户服务远程调用查询乘车人相关信息错误",ex);
-            throw ex;
-        }
-        // 获取扣减开始站点和目的站点及中间站点信息
-        // 查询列车的所有站点
-        LambdaQueryWrapper<TrainStationDO> queryWrapper = Wrappers.lambdaQuery(TrainStationDO.class)
-                .eq(TrainStationDO::getTrainId, requestParam.getTrainId());
-        List<TrainStationDO> trainStationDOList = trainStationMapper.selectList(queryWrapper);
-        List<String> trainStationAllList = trainStationDOList.stream().map(TrainStationDO::getDeparture).collect(Collectors.toList());
-        // 计算所有的路线
-        List<RouteDTO> routeList = StationCalculateUtil.throughStation(trainStationAllList, requestParam.getDeparture(), requestParam.getArrival());
-        // 锁定座位车票库存
-        actualResult.forEach(each -> routeList.forEach(item -> {
-            LambdaUpdateWrapper<SeatDO> updateWrapper = Wrappers.lambdaUpdate(SeatDO.class)
-                    .eq(SeatDO::getTrainId, requestParam.getTrainId())// 列车id
-                    .eq(SeatDO::getCarriageNumber, each.getCarriageNumber())// 车厢号
-                    .eq(SeatDO::getStartStation, item.getStartStation())// 路线的
-                    .eq(SeatDO::getEndStation, item.getEndStation())
-                    .eq(SeatDO::getSeatNumber, each.getSeatNumber());
-            SeatDO updateSeatDO = SeatDO.builder().seatStatus(LOCKED.getCode()).build();
-            seatMapper.update(updateSeatDO, updateWrapper);
-        }));
         return actualResult;
     }
 
@@ -126,7 +57,7 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements Application
      * @param requestParam 购票请求入参
      * @return 乘车人座位
      */
-    protected abstract List<TrainPurchaseTicketRespDTO> selectSeats(PurchaseTicketReqDTO requestParam);
+    protected abstract List<TrainPurchaseTicketRespDTO> selectSeats(SelectSeatDTO requestParam);
 
     /**
      * 应用启动后执行初始化任务
@@ -134,10 +65,7 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements Application
      * @throws Exception 可能抛出异常
      */
     @Override
-    public void run(ApplicationArguments args) throws Exception {
-        seatMapper = ApplicationContextHolder.getBean(SeatMapper.class);
-        trainStationMapper = ApplicationContextHolder.getBean(TrainStationMapper.class);
-        userRemoteService = ApplicationContextHolder.getBean(UserRemoteService.class);
-        trainStationPriceMapper = ApplicationContextHolder.getBean(TrainStationPriceMapper.class);
+    public void run(String... args) throws Exception {
+        distributedCache = ApplicationContextHolder.getBean(DistributedCache.class);
     }
 }
