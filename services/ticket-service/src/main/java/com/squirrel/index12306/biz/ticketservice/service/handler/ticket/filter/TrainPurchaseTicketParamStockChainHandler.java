@@ -20,7 +20,7 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
  */
 @Component
 @RequiredArgsConstructor
-public class TrainPurchaseTicketParamStockChainHandler implements TrainPurchaseTicketChainFilter<PurchaseTicketReqDTO {
+public class TrainPurchaseTicketParamStockChainHandler implements TrainPurchaseTicketChainFilter<PurchaseTicketReqDTO> {
 
     private final DistributedCache distributedCache;
 
