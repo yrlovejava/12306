@@ -8,12 +8,14 @@ import com.squirrel.index12306.biz.ticketservice.service.SeatService;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.AbstractTrainPurchaseTicketTemplate;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.SelectSeatDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select.SeatSelection;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 高铁商务座购票组件
@@ -56,9 +58,36 @@ public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurcha
             if (remainingTicket > passengerSeatDetails.size()) {
                 carriagesNumber = trainCarriageList.get(i);
                 // 查询所有可用的座位（未选的座位）
-                List<String> listAvailableSeat = seatService.listAvailableSeat(trainId, carriagesNumber);
+                List<String> listAvailableSeat = seatService.listAvailableSeat(trainId, carriagesNumber,departure,arrival);
+                int[][] actualSeats = new int[2][3];
+                for (int j = 1; j < 3; j++) {
+                    for (int k = 1; k < 4; k++) {
+                        // 当前默认按照复兴号商务座排序，后续这里需要按照简单工厂对车类型进行获取 y 轴
+                        String suffix = "";
+                        switch (k) {
+                            case 1 -> suffix = "A";
+                            case 2 -> suffix = "C";
+                            case 3 -> suffix = "F";
+                        }
+                        actualSeats[j - 1][k - 1] = listAvailableSeat.contains("0" + j + suffix) ? 0 : 1;
+                    }
+                }
                 // 在未选的座位中寻找可选的座位
-                List<String> selectSeats = selectSeats(listAvailableSeat, passengerSeatDetails.size());
+                List<String> selectSeats = new ArrayList<>();
+                // 默认是选择连续的座位
+                int[][] select = SeatSelection.select(passengerSeatDetails.size(), actualSeats);
+                if (Objects.isNull(select)) {
+                    continue;
+                }
+                for (int[] ints : select) {
+                    String suffix = "";
+                    switch (ints[1]) {
+                        case 1 -> suffix = "A";
+                        case 2 -> suffix = "C";
+                        case 3 -> suffix = "F";
+                    }
+                    selectSeats.add("0" + ints[0] + suffix);
+                }
                 for (int j = 0;j < selectSeats.size();j++) {
                     TrainPurchaseTicketRespDTO result = new TrainPurchaseTicketRespDTO();
                     String seatNumber = selectSeats.get(j);
