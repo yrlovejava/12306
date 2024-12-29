@@ -22,6 +22,23 @@ public class UserServiceImpl implements UserService {
     private final DistributedCache distributedCache;
 
     /**
+     * 根据用户 ID 查询用户信息
+     *
+     * @param userId 用户 ID
+     * @return 用户详细信息
+     */
+    @Override
+    public UserQueryRespDTO queryUserByUserId(String userId) {
+        // 根据id查询数据库中用户信息
+        UserDO userDO = userMapper.selectOne(Wrappers.lambdaQuery(UserDO.class)
+                .eq(UserDO::getId, userId));
+        if(userDO == null){
+            throw new ClientException("用户不存在，请检查用户ID是否正确");
+        }
+        return BeanUtil.convert(userDO, UserQueryRespDTO.class);
+    }
+
+    /**
      * 根据用户名查询用户信息
      *
      * @param username 用户名
