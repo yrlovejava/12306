@@ -5,12 +5,8 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.squirrel.index12306.biz.userservice.common.enums.UserChainMarkEnum;
-import com.squirrel.index12306.biz.userservice.dao.entity.UserDO;
-import com.squirrel.index12306.biz.userservice.dao.entity.UserDeletionDO;
-import com.squirrel.index12306.biz.userservice.dao.entity.UserReuseDO;
-import com.squirrel.index12306.biz.userservice.dao.mapper.UserDeletionMapper;
-import com.squirrel.index12306.biz.userservice.dao.mapper.UserMapper;
-import com.squirrel.index12306.biz.userservice.dao.mapper.UserReuseMapper;
+import com.squirrel.index12306.biz.userservice.dao.entity.*;
+import com.squirrel.index12306.biz.userservice.dao.mapper.*;
 import com.squirrel.index12306.biz.userservice.dto.req.UserDeletionReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.req.UserLoginReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.resp.UserLoginRespDTO;
@@ -37,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static com.squirrel.index12306.biz.userservice.common.constant.RedisKeyConstant.USER_DELETION;
@@ -54,6 +51,8 @@ public class UserLoginServiceImpl implements UserLoginService {
     private final UserMapper userMapper;
     private final UserDeletionMapper userDeletionMapper;
     private final UserReuseMapper userReuseMapper;
+    private final UserMailMapper userMailMapper;
+    private final UserPhoneMapper userPhoneMapper;
     private final DistributedCache distributedCache;
     private final AbstractChainContext<UserRegisterReqDTO> abstractChainContext;
     private final RedissonClient redissonClient;
@@ -67,9 +66,38 @@ public class UserLoginServiceImpl implements UserLoginService {
      */
     @Override
     public UserLoginRespDTO login(UserLoginReqDTO requestParam) {
-        // 1.构建查询条件
+        String usernameOrMailOrPhone = requestParam.getUsernameOrMailOrPhone();
+        boolean mailFlag = false;
+        // 判断是否是邮箱登录
+        // 时间复杂度最佳O（1）。indexOf or contains 时间复杂度为O（n）
+        for (char c : usernameOrMailOrPhone.toCharArray()){
+            if(c == '@'){
+                mailFlag = true;
+                break;
+            }
+        }
+        String username;
+        if(mailFlag){
+            // 根据邮箱在数据库中查找用户信息
+            LambdaQueryWrapper<UserMailDO> queryWrapper = Wrappers.lambdaQuery(UserMailDO.class)
+                    .eq(UserMailDO::getMail, usernameOrMailOrPhone);
+            username = Optional.ofNullable(userMailMapper.selectOne(queryWrapper))
+                    .map(UserMailDO::getUsername)
+                    .orElseThrow(() -> new ClientException("用户名/手机号/邮箱不存在"));
+        }else {
+            // 根据手机号在数据库中查找用户信息
+            LambdaQueryWrapper<UserPhoneDO> queryWrapper = Wrappers.lambdaQuery(UserPhoneDO.class)
+                    .eq(UserPhoneDO::getPhone, usernameOrMailOrPhone);
+            username = Optional.ofNullable(userPhoneMapper.selectOne(queryWrapper))
+                    .map(UserPhoneDO::getUsername)
+                    .orElse(null);
+        }
+        // 如果到这里username还是null，证明是用户名登录
+        username = Optional.ofNullable(username).orElse(requestParam.getUsernameOrMailOrPhone());
+
+        // 构建查询条件
         LambdaQueryWrapper<UserDO> queryWrapper = Wrappers.<UserDO>lambdaQuery()
-                .eq(UserDO::getUsername, requestParam.getUsernameOrMailOrPhone())
+                .eq(UserDO::getUsername, username)
                 .eq(UserDO::getPassword, requestParam.getPassword());
         UserDO userDO = userMapper.selectOne(queryWrapper);
         if (userDO != null) {
@@ -83,7 +111,7 @@ public class UserLoginServiceImpl implements UserLoginService {
             distributedCache.put(accessToken, JSON.toJSONString(actual), 30, TimeUnit.MINUTES);
             return actual;
         }
-        throw new ServiceException("用户名不存在或密码错误");
+        throw new ServiceException("账号不存在或密码错误");
     }
 
     /**
@@ -134,6 +162,7 @@ public class UserLoginServiceImpl implements UserLoginService {
      * @return 注册返回结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public UserRegisterRespDTO register(UserRegisterReqDTO requestParam) {
         abstractChainContext.handler(UserChainMarkEnum.USER_REGISTER_FILTER.name(), requestParam);
         if (!hasUsername(requestParam.getUsername())) {
@@ -143,6 +172,22 @@ public class UserLoginServiceImpl implements UserLoginService {
         if (inserted < 1) {
             throw new ServiceException(USER_REGISTER_FAIL);
         }
+
+        // 在手机号表中插入数据
+        UserPhoneDO userPhoneDO = UserPhoneDO.builder()
+                .phone(requestParam.getPhone())
+                .username(requestParam.getUsername())
+                .build();
+        userPhoneMapper.insert(userPhoneDO);
+        // 如果邮箱字段不为空，在邮箱表中插入数据
+        if (StrUtil.isNotBlank(requestParam.getMail())) {
+            UserMailDO userMailDO = UserMailDO.builder()
+                    .mail(requestParam.getMail())
+                    .username(requestParam.getUsername())
+                    .build();
+            userMailMapper.insert(userMailDO);
+        }
+
         // 获取用户名
         String username = requestParam.getUsername();
         // 在布隆过滤器中添加
@@ -187,12 +232,27 @@ public class UserLoginServiceImpl implements UserLoginService {
             // 插入注销记录
             userDeletionMapper.insert(userDeletionDO);
 
-            // 修改用户状态
+            // MyBatis Plus 不支持修改语句变更 del_flag 字段
+            // 逻辑删除用户数据
             UserDO userDO = new UserDO();
             userDO.setDeletionTime(System.currentTimeMillis());
             userDO.setUsername(username);
-            // MyBatis Plus 不支持修改语句变更 del_flag 字段
             userMapper.deletionUser(userDO);
+            // 逻辑删除用户手机号数据
+            UserPhoneDO userPhoneDO = UserPhoneDO.builder()
+                    .phone(userQueryRespDTO.getPhone())
+                    .deletionTime(System.currentTimeMillis())
+                    .build();
+            userPhoneMapper.deletionUser(userPhoneDO);
+            // 逻辑删除用户邮箱数据
+            if (StrUtil.isNotBlank(userQueryRespDTO.getMail())) {
+                UserMailDO userMailDO = UserMailDO.builder()
+                        .mail(userQueryRespDTO.getMail())
+                        .deletionTime(System.currentTimeMillis())
+                        .build();
+                userMailMapper.deletionUser(userMailDO);
+            }
+            // 删除缓存中用户的token
             distributedCache.delete(UserContext.getToken());
 
             // 恢复数据库中可复用的用户名
