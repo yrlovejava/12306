@@ -17,8 +17,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_order_passenger_relation")
-public class OrderPassengerRelationDO extends BaseDO {
+@TableName("t_order_item_passenger")
+public class OrderItemPassengerDO extends BaseDO {
 
     /**
      * id

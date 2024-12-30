@@ -9,7 +9,7 @@ import com.squirrel.index12306.biz.orderservice.common.enums.OrderCanalErrorCode
 import com.squirrel.index12306.biz.orderservice.common.enums.OrderStatusEnum;
 import com.squirrel.index12306.biz.orderservice.dao.entity.OrderDO;
 import com.squirrel.index12306.biz.orderservice.dao.entity.OrderItemDO;
-import com.squirrel.index12306.biz.orderservice.dao.entity.OrderPassengerRelationDO;
+import com.squirrel.index12306.biz.orderservice.dao.entity.OrderItemPassengerDO;
 import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderItemMapper;
 import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderMapper;
 import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderPassengerRelationMapper;
@@ -134,7 +134,7 @@ public class OrderServiceImpl implements OrderService {
         List<TicketOrderItemCreateReqDTO> ticketOrderItems =
                 requestParam.getTicketOrderItems();
         List<OrderItemDO> orderItemDOList = new ArrayList<>();
-        List<OrderPassengerRelationDO> orderPassengerRelationDOList = new ArrayList<>();
+        List<OrderItemPassengerDO> orderItemPassengerDOList = new ArrayList<>();
         ticketOrderItems.forEach(each -> {
             // 订单明细
             OrderItemDO orderItemDO = OrderItemDO.builder()
@@ -151,18 +151,18 @@ public class OrderServiceImpl implements OrderService {
                     .build();
             orderItemDOList.add(orderItemDO);
             // 订单和乘车人关系
-            OrderPassengerRelationDO orderPassengerRelationDO = OrderPassengerRelationDO.builder()
+            OrderItemPassengerDO orderItemPassengerDO = OrderItemPassengerDO.builder()
                     .idType(each.getIdType())
                     .idCard(each.getIdCard())
                     .orderSn(orderSn)
                     .build();
-            orderPassengerRelationDOList.add(orderPassengerRelationDO);
+            orderItemPassengerDOList.add(orderItemPassengerDO);
         });
         // 批量插入数据库
         // 订单明细
         orderItemService.saveBatch(orderItemDOList);
         // 订单和乘车人的关系
-        orderPassengerRelationDOList.forEach(orderPassengerRelationMapper::insert);
+        orderItemPassengerDOList.forEach(orderPassengerRelationMapper::insert);
         // 返回订单号
         return orderSn;
     }
