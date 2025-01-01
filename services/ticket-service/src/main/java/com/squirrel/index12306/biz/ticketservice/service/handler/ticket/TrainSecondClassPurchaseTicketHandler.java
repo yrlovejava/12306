@@ -9,6 +9,7 @@ import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.Abs
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.SelectSeatDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select.SeatSelection;
+import com.squirrel.index12306.biz.ticketservice.toolkit.SeatNumberUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -65,15 +66,7 @@ public class TrainSecondClassPurchaseTicketHandler extends AbstractTrainPurchase
                 for (int j = 1; j < 19; j++) {
                     for (int k = 1; k < 6; k++) {
                         // 当前默认按照复兴号商务座排序，后续这里需要按照简单工厂对车类型进行获取 y 轴
-                        String suffix = "";
-                        switch (k) {
-                            case 1 -> suffix = "A";
-                            case 2 -> suffix = "B";
-                            case 3 -> suffix = "C";
-                            case 4 -> suffix = "D";
-                            case 5 -> suffix = "F";
-                        }
-                        actualSeats[j - 1][k - 1] = listAvailableSeat.contains(j > 9 ? "" : "0" + j + suffix) ? 0 : 1;
+                        actualSeats[j - 1][k - 1] = listAvailableSeat.contains(j > 9 ? "" : "0" + j + SeatNumberUtil.convert(2, k)) ? 0 : 1;
                     }
                 }
                 // 在未选的座位中寻找可选的座位
@@ -128,15 +121,7 @@ public class TrainSecondClassPurchaseTicketHandler extends AbstractTrainPurchase
                 // 处理选择到的座位，构造返回结果
                 if(select != null){
                     for(int[] gets : select){
-                        String suffix = "";
-                        switch (gets[1]) {
-                            case 1 -> suffix = "A";
-                            case 2 -> suffix = "B";
-                            case 3 -> suffix = "C";
-                            case 4 -> suffix = "D";
-                            case 5 -> suffix = "F";
-                        }
-                        selectSeats.add(gets[0] > 9 ? "" : "0" + gets[0] + suffix);
+                        selectSeats.add(gets[0] > 9 ? "" : "0" + gets[0] + SeatNumberUtil.convert(2, gets[1]));
                     }
                     for (int j = 0; j < selectSeats.size(); j++) {
                         TrainPurchaseTicketRespDTO result = new TrainPurchaseTicketRespDTO();
