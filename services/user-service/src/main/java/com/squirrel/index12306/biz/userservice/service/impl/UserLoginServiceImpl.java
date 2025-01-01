@@ -25,9 +25,11 @@ import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import com.squirrel.index12306.frameworks.starter.user.core.UserInfoDTO;
 import com.squirrel.index12306.frameworks.starter.user.toolkit.JWTUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,11 +40,12 @@ import java.util.concurrent.TimeUnit;
 
 import static com.squirrel.index12306.biz.userservice.common.constant.RedisKeyConstant.USER_DELETION;
 import static com.squirrel.index12306.biz.userservice.common.constant.RedisKeyConstant.USER_REGISTER_REUSE_SHARDING;
-import static com.squirrel.index12306.biz.userservice.common.enums.UserRegisterErrorCodeEnum.USER_REGISTER_FAIL;
+import static com.squirrel.index12306.biz.userservice.common.enums.UserRegisterErrorCodeEnum.*;
 
 /**
  * 用户登录接口实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserLoginServiceImpl implements UserLoginService {
@@ -178,14 +181,25 @@ public class UserLoginServiceImpl implements UserLoginService {
                 .phone(requestParam.getPhone())
                 .username(requestParam.getUsername())
                 .build();
-        userPhoneMapper.insert(userPhoneDO);
+        try {
+            userPhoneMapper.insert(userPhoneDO);
+        }catch (DuplicateKeyException dke) {
+            log.error("用户 [{}] 注册手机号 [{}] 重复", requestParam.getUsername(), requestParam.getPhone());
+            throw new ServiceException(PHONE_REGISTERED);
+        }
+
         // 如果邮箱字段不为空，在邮箱表中插入数据
         if (StrUtil.isNotBlank(requestParam.getMail())) {
             UserMailDO userMailDO = UserMailDO.builder()
                     .mail(requestParam.getMail())
                     .username(requestParam.getUsername())
                     .build();
-            userMailMapper.insert(userMailDO);
+            try {
+                userMailMapper.insert(userMailDO);
+            } catch (DuplicateKeyException dke) {
+                log.error("用户 [{}] 注册邮箱 [{}] 重复", requestParam.getUsername(), requestParam.getMail());
+                throw new ServiceException(MAIL_REGISTERED);
+            }
         }
 
         // 获取用户名
