@@ -202,21 +202,22 @@ public class UserLoginServiceImpl implements UserLoginService {
             }
         }
 
+        // 先删数据库，再删缓存
         // 获取用户名
         String username = requestParam.getUsername();
-        // 在布隆过滤器中添加
-        userRegisterCachePenetrationBloomFilter.add(username);
-
-        // 在可复用的用户名的集合中删除
-        StringRedisTemplate instance = (StringRedisTemplate) distributedCache.getInstance();
-        instance.opsForSet().remove(USER_REGISTER_REUSE_SHARDING + UserReuseUtil.hashShardingIdx(username), username);
-
         // 删除数据库中可复用的用户名数据
         userReuseMapper.delete(Wrappers.update(
                 UserReuseDO.builder()
                         .username(username)
                         .build())
         );
+
+        // 在可复用的用户名的集合中删除
+        StringRedisTemplate instance = (StringRedisTemplate) distributedCache.getInstance();
+        instance.opsForSet().remove(USER_REGISTER_REUSE_SHARDING + UserReuseUtil.hashShardingIdx(username), username);
+
+        // 在布隆过滤器中添加
+        userRegisterCachePenetrationBloomFilter.add(username);
         return BeanUtil.convert(requestParam, UserRegisterRespDTO.class);
     }
 
