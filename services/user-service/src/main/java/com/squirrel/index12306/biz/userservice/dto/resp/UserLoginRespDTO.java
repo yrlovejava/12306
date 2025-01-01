@@ -15,6 +15,12 @@ import lombok.NoArgsConstructor;
 public class UserLoginRespDTO {
 
     /**
+     * 用户 ID
+     */
+    @Schema(description = "userId")
+    private String userId;
+
+    /**
      * 用户名
      */
     @Schema(description = "用户登录")
