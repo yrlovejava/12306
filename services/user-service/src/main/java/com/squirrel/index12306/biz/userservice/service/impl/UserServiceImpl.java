@@ -1,10 +1,15 @@
 package com.squirrel.index12306.biz.userservice.service.impl;
 
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.squirrel.index12306.biz.userservice.dao.entity.UserDO;
 import com.squirrel.index12306.biz.userservice.dao.entity.UserDeletionDO;
+import com.squirrel.index12306.biz.userservice.dao.entity.UserMailDO;
 import com.squirrel.index12306.biz.userservice.dao.mapper.UserDeletionMapper;
+import com.squirrel.index12306.biz.userservice.dao.mapper.UserMailMapper;
 import com.squirrel.index12306.biz.userservice.dao.mapper.UserMapper;
+import com.squirrel.index12306.biz.userservice.dto.req.UserUpdateReqDTO;
 import com.squirrel.index12306.biz.userservice.dto.resp.UserQueryRespDTO;
 import com.squirrel.index12306.biz.userservice.service.UserService;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
@@ -13,6 +18,7 @@ import com.squirrel.index12306.framework.starter.convention.exception.ClientExce
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -23,8 +29,8 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
-    private final DistributedCache distributedCache;
     private final UserDeletionMapper userDeletionMapper;
+    private final UserMailMapper userMailMapper;
 
     /**
      * 根据用户 ID 查询用户信息
@@ -76,5 +82,34 @@ public class UserServiceImpl implements UserService {
         return Optional.ofNullable(deletionCount)
                 .map(Long::intValue)
                 .orElse(0);
+    }
+
+    /**
+     * 根据用户 ID 修改用户信息
+     *
+     * @param requestParam 用户信息入参
+     */
+    @Override
+    public void update(UserUpdateReqDTO requestParam) {
+        // 根据用户名查询用户信息
+        UserQueryRespDTO userQueryRespDTO = this.queryUserByUsername(requestParam.getUsername());
+        // 转换为userDO类型
+        UserDO userDO = BeanUtil.convert(requestParam, UserDO.class);
+        // 修改数据库中数据
+        LambdaUpdateWrapper<UserDO> userUpdateWrapper = Wrappers.lambdaUpdate(UserDO.class)
+                .eq(UserDO::getUsername, requestParam.getUsername());
+        userMapper.update(userDO, userUpdateWrapper);
+        // 如果mail需要修改
+        if(StrUtil.isNotBlank(requestParam.getMail()) && !Objects.equals(requestParam.getMail(),userQueryRespDTO.getMail())){
+            // 先删除邮箱表中的数据，再新增数据
+            LambdaUpdateWrapper<UserMailDO> updateWrapper = Wrappers.lambdaUpdate(UserMailDO.class)
+                    .eq(UserMailDO::getMail, userQueryRespDTO.getMail());
+            userMailMapper.delete(updateWrapper);
+            UserMailDO userMailDO = UserMailDO.builder()
+                    .mail(requestParam.getMail())
+                    .username(requestParam.getUsername())
+                    .build();
+            userMailMapper.insert(userMailDO);
+        }
     }
 }

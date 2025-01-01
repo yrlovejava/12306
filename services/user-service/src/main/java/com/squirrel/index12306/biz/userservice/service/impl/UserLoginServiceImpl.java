@@ -221,6 +221,7 @@ public class UserLoginServiceImpl implements UserLoginService {
             throw new ClientException("注销账号与登录账号不一致");
         }
         RLock lock = redissonClient.getLock(USER_DELETION + requestParam.getUsername());
+        // lock()放try-catch块外面，如果异常将不会执行unlock，如果放在try-catch块中，如果lock()抛出异常，仍然会执行unlock(),这里出现问题
         lock.lock();
         try {
             // 查询用户信息
