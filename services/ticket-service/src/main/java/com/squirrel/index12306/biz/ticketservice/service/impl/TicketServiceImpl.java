@@ -9,6 +9,7 @@ import com.squirrel.index12306.biz.ticketservice.common.enums.*;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.*;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.*;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.*;
+import com.squirrel.index12306.biz.ticketservice.dto.req.CancelTicketOrderReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketOrderDetailRespDTO;
@@ -29,7 +30,6 @@ import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.chain.AbstractChainContext;
-import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
 import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -165,6 +165,16 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
                 .trainBrandList(trainBrandSet.stream().toList())// 列车标签集合
                 .seatClassTypeList(buildSeatClassList(seatResults))// 座位类型集合
                 .build();
+    }
+
+    /**
+     * 取消车票订单
+     *
+     * @param requestParam 取消车票订单入参
+     */
+    @Override
+    public void cancelTicketOrder(CancelTicketOrderReqDTO requestParam) {
+        ticketOrderRemoteService.cancelTicketOrder(requestParam);
     }
 
     /**

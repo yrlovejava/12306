@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
         topic = TicketRocketMQConstant.TICKET_CREATE_TOPIC_KEY,// 订阅的主题
         selectorExpression = TicketRocketMQConstant.TICKET_DELAY_CLOSE_TAG_KEY,// 消息标签过滤规则
         consumerGroup = TicketRocketMQConstant.TICKET_DELAY_CLOSE_CG_KEY)// 消费者组
-public final class DelayCloseConsumer implements RocketMQListener<MessageWrapper<DelayCloseOrderEvent>> {
+public final class DelayCloseOrderConsumer implements RocketMQListener<MessageWrapper<DelayCloseOrderEvent>> {
 
     private final TicketOrderRemoteService ticketOrderRemoteService;
 

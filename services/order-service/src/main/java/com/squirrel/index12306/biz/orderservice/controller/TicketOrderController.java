@@ -1,8 +1,11 @@
 package com.squirrel.index12306.biz.orderservice.controller;
 
+import com.squirrel.index12306.biz.orderservice.dto.req.CancelTicketOrderReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderPageQueryReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderSelfPageQueryReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDTO;
+import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailSelfRespDTO;
 import com.squirrel.index12306.biz.orderservice.service.OrderService;
 import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
@@ -44,6 +47,15 @@ public class TicketOrderController {
     }
 
     /**
+     * 分页查询本人车票订单
+     */
+    @Operation(summary = "分页查询本人车票订单")
+    @GetMapping("/api/order-service/order/ticket/self/page")
+    public Result<PageResponse<TicketOrderDetailSelfRespDTO>> pageSelfTicketOrder(TicketOrderSelfPageQueryReqDTO requestParam) {
+        return Results.success(orderService.pageSelfTicketOrder(requestParam));
+    }
+
+    /**
      * 车票订单创建
      * @param requestParam 订单创建参数
      * @return Result<String> 订单号
@@ -56,24 +68,24 @@ public class TicketOrderController {
 
     /**
      * 车票订单关闭
-     * @param orderSn 订单号
+     * @param requestParam 订单号
      * @return Result<Void>
      */
     @Operation(summary = "车票订单关闭")
     @PostMapping("/api/order-service/order/ticket/close")
-    public Result<Void> closeTickOrder(@RequestParam("orderSn") String orderSn) {
-        orderService.closeTickOrder(orderSn);
+    public Result<Void> closeTickOrder(@RequestBody CancelTicketOrderReqDTO requestParam) {
+        orderService.closeTickOrder(requestParam);
         return Results.success();
     }
 
     /**
      * 车票订单取消
-     * @param orderSn 订单号
+     * @param requestParam 订单号
      * @return  Result<Void>
      */
     @PostMapping("/api/order-service/order/ticket/cancel")
-    public Result<Void> cancelTickOrder(@RequestParam("orderSn") String orderSn) {
-        orderService.cancelTickOrder(orderSn);
+    public Result<Void> cancelTickOrder(@RequestBody CancelTicketOrderReqDTO requestParam) {
+        orderService.cancelTickOrder(requestParam);
         return Results.success();
     }
 }

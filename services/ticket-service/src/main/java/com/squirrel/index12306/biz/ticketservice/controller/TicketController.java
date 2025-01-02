@@ -1,12 +1,12 @@
 package com.squirrel.index12306.biz.ticketservice.controller;
 
+import com.squirrel.index12306.biz.ticketservice.dto.req.CancelTicketOrderReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPurchaseRespDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
-import com.squirrel.index12306.framework.starter.convention.page.PageResponse;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.log.annotation.ILog;
 import com.squirrel.index12306.framework.starter.web.Results;
@@ -45,6 +45,16 @@ public class TicketController {
     @PostMapping("/api/ticket-service/ticket/purchase")
     public Result<TicketPurchaseRespDTO> purchaseTickets(@RequestBody PurchaseTicketReqDTO requestParam) {
         return Results.success(ticketService.purchaseTickets(requestParam));
+    }
+
+    /**
+     * 取消车票订单
+     */
+    @ILog
+    @PostMapping("/api/ticket-service/ticket/cancel")
+    public Result<Void> cancelTicketOrder(@RequestBody CancelTicketOrderReqDTO requestParam) {
+        ticketService.cancelTicketOrder(requestParam);
+        return Results.success();
     }
 
     /**

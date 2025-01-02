@@ -1,5 +1,6 @@
 package com.squirrel.index12306.biz.orderservice.service.impl;
 
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.text.StrBuilder;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -14,10 +15,9 @@ import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderItemMapper;
 import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderMapper;
 import com.squirrel.index12306.biz.orderservice.dao.mapper.OrderPassengerRelationMapper;
 import com.squirrel.index12306.biz.orderservice.dto.domain.OrderStatusReversalDTO;
-import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
-import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderItemCreateReqDTO;
-import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderPageQueryReqDTO;
+import com.squirrel.index12306.biz.orderservice.dto.req.*;
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailRespDTO;
+import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderDetailSelfRespDTO;
 import com.squirrel.index12306.biz.orderservice.dto.resp.TicketOrderPassengerDetailRespDTO;
 import com.squirrel.index12306.biz.orderservice.mq.event.PayResultCallbackOrderEvent;
 import com.squirrel.index12306.biz.orderservice.service.OrderItemService;
@@ -170,28 +170,29 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 关闭火车票订单
      *
-     * @param orderSn 订单号
+     * @param requestParam 订单号
      */
     @Override
-    public void closeTickOrder(String orderSn) {
+    public void closeTickOrder(CancelTicketOrderReqDTO requestParam) {
         // 在数据库中查询订单
         OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
-                .eq(OrderDO::getOrderSn, orderSn));
+                .eq(OrderDO::getOrderSn, requestParam.getOrderSn()));
         // 判断订单状态，只有待付款状态才能关闭
         if (Objects.isNull(orderDO) || orderDO.getStatus() != OrderStatusEnum.PENDING_PAYMENT.getStatus()) {
             return;
         }
         // 原则上订单关闭和订单取消这两个方法可以复用，为了区分未来考虑到的场景，这里对方法进行拆分但服用逻辑
-        this.cancelTickOrder(orderSn);
+        this.cancelTickOrder(requestParam);
     }
 
     /**
      * 取消火车票订单
      *
-     * @param orderSn 订单号
+     * @param requestParam 订单号
      */
     @Override
-    public void cancelTickOrder(String orderSn) {
+    public void cancelTickOrder(CancelTicketOrderReqDTO requestParam) {
+        String orderSn = requestParam.getOrderSn();
         // 在数据库中查询订单
         OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
                 .eq(OrderDO::getOrderSn, orderSn));
@@ -281,5 +282,59 @@ public class OrderServiceImpl implements OrderService {
         if (updateResult <= 0) {
             throw new ServiceException(OrderCanalErrorCodeEnum.ORDER_STATUS_REVERSAL_ERROR);
         }
+    }
+
+    /**
+     * 查询本人车票订单
+     *
+     * @param requestParam 请求参数
+     * @return 本人车票订单集合
+     */
+    @Override
+    public PageResponse<TicketOrderDetailSelfRespDTO> pageSelfTicketOrder(TicketOrderSelfPageQueryReqDTO requestParam) {
+        // 构造查询条件
+        LambdaQueryWrapper<OrderItemPassengerDO> queryWrapper = Wrappers.lambdaQuery(OrderItemPassengerDO.class)
+                .eq(OrderItemPassengerDO::getIdCard,requestParam.getIdCard())
+                .orderByDesc(OrderItemPassengerDO::getCreateTime);
+        // 分页查询数据库中本人的所有车票
+        IPage<OrderItemPassengerDO> orderItemPassengerDOIPage = orderPassengerRelationService.page(PageUtil.convert(requestParam), queryWrapper);
+        // 解析成返回参数
+        return PageUtil.convert(orderItemPassengerDOIPage,each -> {
+            // 查询数据库中订单
+            OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
+                    .eq(OrderDO::getOrderSn, each.getOrderSn()));
+            // 查询数据库中订单明细
+            LambdaQueryWrapper<OrderItemDO> orderItemQueryWrapper = Wrappers.lambdaQuery(OrderItemDO.class)
+                    .eq(OrderItemDO::getOrderSn, each.getOrderSn())
+                    .eq(OrderItemDO::getIdCard, each.getIdCard());
+            OrderItemDO orderItemDO = orderItemMapper.selectOne(orderItemQueryWrapper);
+            TicketOrderDetailSelfRespDTO actualResult = BeanUtil.convert(orderDO, TicketOrderDetailSelfRespDTO.class);
+            BeanUtil.convertIgnoreNullAndBlank(orderItemDO, actualResult);
+            return actualResult;
+        });
+    }
+
+    /**
+     * 构建车票状态列表
+     * @param requestParam 车票分页查询参数
+     * @return 状态列表
+     */
+    private List<Integer> buildOrderStatusList(TicketOrderPageQueryReqDTO requestParam) {
+        List<Integer> result = new ArrayList<>();
+        switch (requestParam.getStatusType()) {
+            case 0 -> result = ListUtil.of(
+                    OrderStatusEnum.PENDING_PAYMENT.getStatus()
+            );
+            case 1 -> result = ListUtil.of(
+                    OrderStatusEnum.ALREADY_PAID.getStatus(),
+                    OrderStatusEnum.PARTIAL_REFUND.getStatus()
+            );
+            case 2 -> result = ListUtil.of(
+                    OrderStatusEnum.FULL_REFUND.getStatus(),
+                    OrderStatusEnum.COMPLETED.getStatus(),
+                    OrderStatusEnum.CLOSED.getStatus()
+            );
+        }
+        return result;
     }
 }

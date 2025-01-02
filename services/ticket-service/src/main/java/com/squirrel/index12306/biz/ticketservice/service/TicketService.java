@@ -2,6 +2,7 @@ package com.squirrel.index12306.biz.ticketservice.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TicketDO;
+import com.squirrel.index12306.biz.ticketservice.dto.req.CancelTicketOrderReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
@@ -37,4 +38,11 @@ public interface TicketService extends IService<TicketDO> {
      * @return 支付单详情
      */
     PayInfoRespDTO getPayInfo(String orderSn);
+
+    /**
+     * 取消车票订单
+     *
+     * @param requestParam 取消车票订单入参
+     */
+    void cancelTicketOrder(CancelTicketOrderReqDTO requestParam);
 }
