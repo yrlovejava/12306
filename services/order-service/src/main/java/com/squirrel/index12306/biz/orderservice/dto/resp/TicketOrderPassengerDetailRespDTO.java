@@ -57,4 +57,10 @@ public class TicketOrderPassengerDetailRespDTO {
      */
     @Schema(description = "订单金额")
     private Integer amount;
+
+    /**
+     * 车票状态
+     */
+    @Schema(description = "车票状态")
+    private Integer status;
 }

@@ -27,6 +27,13 @@ public class TicketOrderDetailRespDTO {
     private String arrival;
 
     /**
+     * 订票日期
+     */
+    @Schema(description = "订票日期")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    private Date orderTime;
+
+    /**
      * 乘车日期
      */
     @Schema(description = "乘车日期")
