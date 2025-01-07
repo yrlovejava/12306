@@ -21,9 +21,16 @@ spring:
           uri: lb://index12306-ticket-service/api/ticket-service/**
           predicates:
             - Path=/api/ticket-service/**
+          filters:
+            - name: TokenValidate
+            - args:
+                blackPathPre:
+                  - /api/ticket-service/ticket/purchase
+                  - /api/ticket-service/ticket/pay/query
+                  - /api/ticket-service/ticket/cancel
 
-        - id: index12306-pay-aggregation-service
-          uri: lb://index12306-aggregation-service/api/pay-service/**
+        - id: index12306-pay-service
+          uri: lb://index12306-pay-service/api/pay-service/**
           predicates:
             - Path=/api/pay-service/**
 
@@ -36,3 +43,4 @@ spring:
               args:
                 blackPathPre:
                   - /api/order-service/order/ticket/query
+                  - /api/order-service/order/ticket/self/page
