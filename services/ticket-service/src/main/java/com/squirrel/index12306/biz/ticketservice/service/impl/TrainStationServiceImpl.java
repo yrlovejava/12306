@@ -1,6 +1,5 @@
 package com.squirrel.index12306.biz.ticketservice.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationMapper;
@@ -13,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 列车站点接口实现层
