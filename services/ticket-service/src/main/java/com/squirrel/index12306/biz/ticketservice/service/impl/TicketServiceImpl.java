@@ -23,6 +23,7 @@ import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
+import com.squirrel.index12306.biz.ticketservice.service.cache.SeatMarginCacheLoader;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select.TrainSeatTypeSelector;
 import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
@@ -65,6 +66,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
     private final StationMapper stationMapper;
     private final DelayCloseOrderSendProducer delayCloseOrderSendProducer;
     private final TrainSeatTypeSelector trainSeatTypeSelector;
+    private final SeatMarginCacheLoader seatMarginCacheLoader;
     private final AbstractChainContext<PurchaseTicketReqDTO> abstractChainContext;
 
     /**
@@ -136,16 +138,24 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
             List<SeatClassDTO> seatClassList = new ArrayList<>();
             StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
             trainStationPriceDOList.forEach(item -> {
+                // 获取座位类型
+                String seatType = String.valueOf(item.getSeatType());
                 // 获取key后缀
                 String keySuffix = StrUtil.join("_", each.getTrainId(), item.getDeparture(), item.getArrival());
                 // 获取该座位类型的票数量
-                Object quantityObj = stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, String.valueOf(item.getSeatType()));
+                Object quantityObj = stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, seatType);
                 Integer quantity = Optional.ofNullable(quantityObj)
                         .map(Object::toString)
                         .map(Integer::parseInt)
                         .orElseGet(() -> {
-                            // TODO 后续适配缓存失效逻辑
-                            return 0;
+                            // 从缓存中获取，如果没有从数据库中查询并添加到redis中
+                            Map<String, String> seatMarginMap = seatMarginCacheLoader.load(
+                                    String.valueOf(each.getTrainId()),
+                                    seatType,
+                                    item.getDeparture(),
+                                    item.getArrival()
+                            );
+                            return Optional.ofNullable(seatMarginMap.get(String.valueOf(item.getSeatType()))).map(Integer::parseInt).orElse(0);
                         });
                 SeatClassDTO seatClassDTO = SeatClassDTO.builder()
                         .type(item.getSeatType())// 席别类型

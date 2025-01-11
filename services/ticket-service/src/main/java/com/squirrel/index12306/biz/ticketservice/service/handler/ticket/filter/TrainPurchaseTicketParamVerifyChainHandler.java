@@ -1,9 +1,13 @@
 package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter;
 
+import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.squirrel.index12306.biz.ticketservice.common.constant.Index12306Constant;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainMapper;
+import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationMapper;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.common.toolkit.EnvironmentUtil;
@@ -30,6 +34,7 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
 public class TrainPurchaseTicketParamVerifyChainHandler implements TrainPurchaseTicketChainFilter<PurchaseTicketReqDTO> {
 
     private final TrainMapper trainMapper;
+    private final TrainStationMapper trainStationMapper;
     private final DistributedCache distributedCache;
 
     /**
@@ -64,8 +69,18 @@ public class TrainPurchaseTicketParamVerifyChainHandler implements TrainPurchase
             }
         }
         // 车站是否存在车次中，以及车站的顺序是否正确
-        // 查询路线信息
-        String trainStationStopoverDetailStr = distributedCache.get(TRAIN_STATION_STOPOVER_DETAIL + requestParam.getTrainId(), String.class);
+        // 查询路线信息，如果没有需要从数据库中查询并添加到缓存中
+        String trainStationStopoverDetailStr = distributedCache.safeGet(
+                TRAIN_STATION_STOPOVER_DETAIL + requestParam.getTrainId(),
+                String.class,
+                () -> {
+                    List<TrainStationDO> actualTrainStationList = trainStationMapper.selectList(Wrappers.lambdaQuery(TrainStationDO.class)
+                            .eq(TrainStationDO::getTrainId, requestParam.getTrainId()));
+                    return CollUtil.isNotEmpty(actualTrainStationList) ? JSON.toJSONString(actualTrainStationList) : null;
+                },
+                ADVANCE_TICKET_DAY,
+                TimeUnit.DAYS
+        );
         List<TrainStationDO> trainDOList = JSON.parseArray(trainStationStopoverDetailStr, TrainStationDO.class);
         // 验证路线信息
         boolean validateStation = validateStation(
