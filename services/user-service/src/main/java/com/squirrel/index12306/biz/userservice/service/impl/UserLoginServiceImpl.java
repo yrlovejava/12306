@@ -179,7 +179,7 @@ public class UserLoginServiceImpl implements UserLoginService {
             }
         } catch (DuplicateKeyException dke) {
             log.error("用户名 [{}] 重复注册", requestParam.getUsername());
-            throw new ServiceException(PHONE_REGISTERED);
+            throw new ServiceException(HAS_USERNAME_NOTNULL);
         }
 
         // 在手机号表中插入数据
