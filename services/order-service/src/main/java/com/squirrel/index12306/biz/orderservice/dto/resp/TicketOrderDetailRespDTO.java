@@ -15,6 +15,12 @@ import java.util.List;
 public class TicketOrderDetailRespDTO {
 
     /**
+     * 订单号
+     */
+    @Schema(description = "订单号")
+    private String orderSn;
+
+    /**
      * 出发站点
      */
     @Schema(description = "出发站点")
