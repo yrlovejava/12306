@@ -69,23 +69,21 @@ public class TicketOrderController {
     /**
      * 车票订单关闭
      * @param requestParam 订单号
-     * @return Result<Void>
+     * @return Result<Boolean>
      */
     @Operation(summary = "车票订单关闭")
     @PostMapping("/api/order-service/order/ticket/close")
-    public Result<Void> closeTickOrder(@RequestBody CancelTicketOrderReqDTO requestParam) {
-        orderService.closeTickOrder(requestParam);
-        return Results.success();
+    public Result<Boolean> closeTickOrder(@RequestBody CancelTicketOrderReqDTO requestParam) {
+        return Results.success(orderService.closeTickOrder(requestParam));
     }
 
     /**
      * 车票订单取消
      * @param requestParam 订单号
-     * @return  Result<Void>
+     * @return  Result<Boolean>
      */
     @PostMapping("/api/order-service/order/ticket/cancel")
-    public Result<Void> cancelTickOrder(@RequestBody CancelTicketOrderReqDTO requestParam) {
-        orderService.cancelTickOrder(requestParam);
-        return Results.success();
+    public Result<Boolean> cancelTickOrder(@RequestBody CancelTicketOrderReqDTO requestParam) {
+        return Results.success(orderService.cancelTickOrder(requestParam));
     }
 }

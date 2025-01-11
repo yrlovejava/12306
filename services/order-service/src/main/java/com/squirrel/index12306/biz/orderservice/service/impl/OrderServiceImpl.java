@@ -171,27 +171,29 @@ public class OrderServiceImpl implements OrderService {
      * 关闭火车票订单
      *
      * @param requestParam 订单号
+     * @return 关闭是否成功
      */
     @Override
-    public void closeTickOrder(CancelTicketOrderReqDTO requestParam) {
+    public boolean closeTickOrder(CancelTicketOrderReqDTO requestParam) {
         // 在数据库中查询订单
         OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
                 .eq(OrderDO::getOrderSn, requestParam.getOrderSn()));
         // 判断订单状态，只有待付款状态才能关闭
         if (Objects.isNull(orderDO) || orderDO.getStatus() != OrderStatusEnum.PENDING_PAYMENT.getStatus()) {
-            return;
+            return false;
         }
         // 原则上订单关闭和订单取消这两个方法可以复用，为了区分未来考虑到的场景，这里对方法进行拆分但服用逻辑
-        this.cancelTickOrder(requestParam);
+        return this.cancelTickOrder(requestParam);
     }
 
     /**
      * 取消火车票订单
      *
      * @param requestParam 订单号
+     * @return 取消是否成功
      */
     @Override
-    public void cancelTickOrder(CancelTicketOrderReqDTO requestParam) {
+    public boolean cancelTickOrder(CancelTicketOrderReqDTO requestParam) {
         String orderSn = requestParam.getOrderSn();
         // 在数据库中查询订单
         OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
@@ -229,6 +231,7 @@ public class OrderServiceImpl implements OrderService {
         }finally {
             lock.unlock();
         }
+        return true;
     }
 
     /**
