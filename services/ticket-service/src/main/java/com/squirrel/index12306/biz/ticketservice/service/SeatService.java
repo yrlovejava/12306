@@ -1,5 +1,7 @@
 package com.squirrel.index12306.biz.ticketservice.service;
 
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
+
 import java.util.List;
 
 /**
@@ -29,4 +31,24 @@ public interface SeatService {
      * @return 车厢余票集合
      */
     List<Integer> listSeatRemainingTicket(String trainId, String departure, String arrival, List<String> trainCarriageList);
+
+    /**
+     * 锁定选中以及沿途车票状态
+     *
+     * @param trainId                     列车 ID
+     * @param departure                   出发站
+     * @param arrival                     到达站
+     * @param trainPurchaseTicketRespList 乘车人以及座位信息
+     */
+    void lockSeat(String trainId, String departure, String arrival, List<TrainPurchaseTicketRespDTO> trainPurchaseTicketRespList);
+
+    /**
+     * 解锁选中以及沿途车票状态
+     *
+     * @param trainId                    列车 ID
+     * @param departure                  出发站
+     * @param arrival                    到达站
+     * @param trainPurchaseTicketResults 乘车人以及座位信息
+     */
+    void unlock(String trainId, String departure, String arrival, List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults);
 }

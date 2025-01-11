@@ -3,11 +3,16 @@ package com.squirrel.index12306.biz.ticketservice.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
+import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
 import com.squirrel.index12306.biz.ticketservice.service.SeatService;
+import com.squirrel.index12306.biz.ticketservice.service.TrainStationService;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -24,9 +29,10 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
  */
 @Service
 @RequiredArgsConstructor
-public class SeatServiceImpl implements SeatService {
+public class SeatServiceImpl extends ServiceImpl<SeatMapper, SeatDO> implements SeatService {
 
     private final SeatMapper seatMapper;
+    private final TrainStationService trainStationService;
     private final DistributedCache distributedCache;
 
     /**
@@ -44,7 +50,7 @@ public class SeatServiceImpl implements SeatService {
         LambdaQueryWrapper<SeatDO> queryWrapper = Wrappers.lambdaQuery(SeatDO.class)
                 .eq(SeatDO::getTrainId, trainId)
                 .eq(SeatDO::getCarriageNumber, carriageNumber)
-                .eq(SeatDO::getSeatType,seatType)
+                .eq(SeatDO::getSeatType, seatType)
                 .eq(SeatDO::getStartStation, departure)
                 .eq(SeatDO::getEndStation, arrival)
                 .eq(SeatDO::getSeatStatus, SeatStatusEnum.AVAILABLE.getCode());
@@ -81,5 +87,55 @@ public class SeatServiceImpl implements SeatService {
                 .endStation(arrival)
                 .build();
         return seatMapper.listSeatRemainingTicket(seatDO, trainCarriageList);
+    }
+
+    /**
+     * 锁定选中以及沿途车票状态
+     *
+     * @param trainId                     列车 ID
+     * @param departure                   出发站
+     * @param arrival                     到达站
+     * @param trainPurchaseTicketRespList 乘车人以及座位信息
+     */
+    @Override
+    public void lockSeat(String trainId, String departure, String arrival, List<TrainPurchaseTicketRespDTO> trainPurchaseTicketRespList) {
+        // 计算所有的路线
+        List<RouteDTO> routeList = trainStationService.listTrainStationRoute(trainId, departure, arrival);
+        // 锁定座位车票库存
+        trainPurchaseTicketRespList.forEach(each -> routeList.forEach(item -> {
+            LambdaUpdateWrapper<SeatDO> updateWrapper = Wrappers.lambdaUpdate(SeatDO.class)
+                    .eq(SeatDO::getTrainId, trainId)// 列车id
+                    .eq(SeatDO::getCarriageNumber, each.getCarriageNumber())// 车厢号
+                    .eq(SeatDO::getStartStation, item.getStartStation())// 路线的开始站点
+                    .eq(SeatDO::getEndStation, item.getEndStation()) // 路线的到达站点
+                    .eq(SeatDO::getSeatNumber, each.getSeatNumber()); // 座位号
+            SeatDO updateSeatDO = SeatDO.builder().seatStatus(SeatStatusEnum.LOCKED.getCode()).build();
+            seatMapper.update(updateSeatDO, updateWrapper);
+        }));
+    }
+
+    /**
+     * 解锁选中以及沿途车票状态
+     *
+     * @param trainId                    列车 ID
+     * @param departure                  出发站
+     * @param arrival                    到达站
+     * @param trainPurchaseTicketResults 乘车人以及座位信息
+     */
+    @Override
+    public void unlock(String trainId, String departure, String arrival, List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults) {
+        // 计算所有的路线
+        List<RouteDTO> routeList = trainStationService.listTrainStationRoute(trainId, departure, arrival);
+        // 释放座位车票库存
+        trainPurchaseTicketResults.forEach(each -> routeList.forEach(item -> {
+            LambdaUpdateWrapper<SeatDO> updateWrapper = Wrappers.lambdaUpdate(SeatDO.class)
+                    .eq(SeatDO::getTrainId, trainId)// 列车id
+                    .eq(SeatDO::getCarriageNumber, each.getCarriageNumber())// 车厢号
+                    .eq(SeatDO::getStartStation, item.getStartStation())// 路线的开始站点
+                    .eq(SeatDO::getEndStation, item.getEndStation()) // 路线的到达站点
+                    .eq(SeatDO::getSeatNumber, each.getSeatNumber()); // 座位号
+            SeatDO updateSeatDO = SeatDO.builder().seatStatus(SeatStatusEnum.AVAILABLE.getCode()).build();
+            seatMapper.update(updateSeatDO, updateWrapper);
+        }));
     }
 }

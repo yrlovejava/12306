@@ -2,25 +2,18 @@ package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleSeatTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationPriceDO;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
-import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationPriceMapper;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassengerDetailDTO;
-import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.UserRemoteService;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.PassengerRespDTO;
+import com.squirrel.index12306.biz.ticketservice.service.SeatService;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.SelectSeatDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
-import com.squirrel.index12306.biz.ticketservice.toolkit.StationCalculateUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
@@ -43,15 +36,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public final class TrainSeatTypeSelector {
 
-    private final SeatMapper seatMapper;
-    private final TrainStationMapper trainStationMapper;
+    private final SeatService seatService;
     private final UserRemoteService userRemoteService;
     private final TrainStationPriceMapper trainStationPriceMapper;
     private final AbstractStrategyChoose abstractStrategyChoose;
 
     /**
      * 选择座位
-     * @param trainType 列车类型
+     *
+     * @param trainType    列车类型
      * @param requestParam 购票请求参数
      * @return 列车购票出参
      */
@@ -118,25 +111,8 @@ public final class TrainSeatTypeSelector {
             log.error("用户服务远程调用查询乘车人相关信息错误", ex);
             throw ex;
         }
-        // 获取扣减开始站点和目的站点及中间站点信息
-        // 查询列车的所有站点
-        LambdaQueryWrapper<TrainStationDO> queryWrapper = Wrappers.lambdaQuery(TrainStationDO.class)
-                .eq(TrainStationDO::getTrainId, requestParam.getTrainId());
-        List<TrainStationDO> trainStationDOList = trainStationMapper.selectList(queryWrapper);
-        List<String> trainStationAllList = trainStationDOList.stream().map(TrainStationDO::getDeparture).collect(Collectors.toList());
-        // 计算所有的路线
-        List<RouteDTO> routeList = StationCalculateUtil.throughStation(trainStationAllList, requestParam.getDeparture(), requestParam.getArrival());
         // 锁定座位车票库存
-        actualResult.forEach(each -> routeList.forEach(item -> {
-            LambdaUpdateWrapper<SeatDO> updateWrapper = Wrappers.lambdaUpdate(SeatDO.class)
-                    .eq(SeatDO::getTrainId, requestParam.getTrainId())// 列车id
-                    .eq(SeatDO::getCarriageNumber, each.getCarriageNumber())// 车厢号
-                    .eq(SeatDO::getStartStation, item.getStartStation())// 路线的
-                    .eq(SeatDO::getEndStation, item.getEndStation())
-                    .eq(SeatDO::getSeatNumber, each.getSeatNumber());
-            SeatDO updateSeatDO = SeatDO.builder().seatStatus(SeatStatusEnum.LOCKED.getCode()).build();
-            seatMapper.update(updateSeatDO, updateWrapper);
-        }));
+        seatService.lockSeat(requestParam.getTrainId(), requestParam.getDeparture(), requestParam.getArrival(), actualResult);
         return actualResult;
     }
 }
