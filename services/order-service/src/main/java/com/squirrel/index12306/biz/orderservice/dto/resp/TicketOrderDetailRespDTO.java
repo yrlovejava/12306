@@ -1,6 +1,8 @@
 package com.squirrel.index12306.biz.orderservice.dto.resp;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.squirrel.index12306.biz.orderservice.serialize.IdCardDesensitizationSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -18,6 +20,7 @@ public class TicketOrderDetailRespDTO {
      * 订单号
      */
     @Schema(description = "订单号")
+    @JsonSerialize(using = IdCardDesensitizationSerializer.class )
     private String orderSn;
 
     /**
