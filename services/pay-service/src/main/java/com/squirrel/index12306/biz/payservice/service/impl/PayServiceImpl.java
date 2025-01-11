@@ -81,7 +81,7 @@ public class PayServiceImpl implements PayService {
     public void callbackPay(PayCallbackReqDTO requestParam) {
         // 查询数据库中的支付单
         PayDO payDO = payMapper.selectOne(Wrappers.lambdaQuery(PayDO.class)
-                .eq(PayDO::getOrderRequestId, requestParam.getOrderRequestId()));
+                .eq(PayDO::getOrderSn, requestParam.getOrderSn()));
         // 判断支付单是否存在
         if(Objects.isNull(payDO)){
             log.error("支付单不存在,orderRequestId: {}",requestParam.getOrderRequestId());
@@ -96,8 +96,9 @@ public class PayServiceImpl implements PayService {
         // 设置支付时间
         payDO.setGmtPayment(requestParam.getGmtPayment());
         // 修改数据库中数据
-        int result = payMapper.updateById(payDO);
-        if(result <= 0){
+        int result = payMapper.update(payDO, Wrappers.lambdaUpdate(PayDO.class)
+                .eq(PayDO::getOrderSn, requestParam.getOrderSn()));
+        if(result <= 0) {
             log.error("修改支付单支付结果失败，支付单信息：{}", JSON.toJSONString(payDO));
             throw new ServiceException("修改支付单支付结果失败");
         }

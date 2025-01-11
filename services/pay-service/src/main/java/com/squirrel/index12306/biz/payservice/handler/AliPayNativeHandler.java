@@ -49,7 +49,7 @@ public final class AliPayNativeHandler extends AbstractPayHandler implements Abs
         // 构建支付请求模型
         AlipayTradePagePayModel model = new AlipayTradePagePayModel();
         // 商户订单号
-        model.setOutTradeNo(aliPayRequest.getOrderRequestId());
+        model.setOutTradeNo(aliPayRequest.getOrderSn());
         // 总支付金额
         model.setTotalAmount(aliPayRequest.getTotalAmount().toString());
         // 订单标题
