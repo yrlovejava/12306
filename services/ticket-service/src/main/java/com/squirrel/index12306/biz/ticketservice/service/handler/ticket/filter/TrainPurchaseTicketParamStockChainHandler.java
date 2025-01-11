@@ -3,6 +3,7 @@ package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter;
 import cn.hutool.core.util.StrUtil;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassengerDetailDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
+import com.squirrel.index12306.biz.ticketservice.service.cache.SeatMarginCacheLoader;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_STATION_REMAINING_TICKET;
@@ -22,6 +24,7 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
 @RequiredArgsConstructor
 public class TrainPurchaseTicketParamStockChainHandler implements TrainPurchaseTicketChainFilter<PurchaseTicketReqDTO> {
 
+    private final SeatMarginCacheLoader seatMarginCacheLoader;
     private final DistributedCache distributedCache;
 
     /**
@@ -41,11 +44,17 @@ public class TrainPurchaseTicketParamStockChainHandler implements TrainPurchaseT
         seatTypeMap.forEach((seatType,passengerSeatDetails) -> {
             // 这里从redis中查询余票缓存，可能余票更新不及时，所以这里不能保证一定余票充足，后面正式购票的时候还会做校验
             Object stockObj = stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, String.valueOf(seatType));
-            if(stockObj != null){
-                int stock = Integer.parseInt(stockObj.toString());
-                if(stock > passengerDetails.size()){
-                    return;
-                }
+            // 如果缓存中没有会自动加载
+            int stock = Optional.ofNullable(stockObj).map(each -> Integer.parseInt(each.toString())).orElseGet(() -> {
+                Map<String,String> seatMarginMap = seatMarginCacheLoader.load(
+                        String.valueOf(requestParam.getTrainId()),
+                        String.valueOf(seatType),
+                        requestParam.getDeparture(),
+                        requestParam.getArrival());
+                return Optional.ofNullable(seatMarginMap.get(String.valueOf(seatType))).map(Integer::parseInt).orElse(0);
+            });
+            if (stock > passengerDetails.size()){
+                return;
             }
             throw new ClientException("列车站点已无余票");
         });

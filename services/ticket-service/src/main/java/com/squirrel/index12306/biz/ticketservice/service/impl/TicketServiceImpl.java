@@ -23,6 +23,7 @@ import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
+import com.squirrel.index12306.biz.ticketservice.service.cache.SeatMarginCacheLoader;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select.TrainSeatTypeSelector;
 import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
@@ -32,6 +33,8 @@ import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.chain.AbstractChainContext;
 import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import lombok.RequiredArgsConstructor;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.SendStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -65,6 +68,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
     private final StationMapper stationMapper;
     private final DelayCloseOrderSendProducer delayCloseOrderSendProducer;
     private final TrainSeatTypeSelector trainSeatTypeSelector;
+    private final SeatMarginCacheLoader seatMarginCacheLoader;
     private final AbstractChainContext<PurchaseTicketReqDTO> abstractChainContext;
 
     /**
@@ -136,16 +140,24 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
             List<SeatClassDTO> seatClassList = new ArrayList<>();
             StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
             trainStationPriceDOList.forEach(item -> {
+                // 获取座位类型
+                String seatType = String.valueOf(item.getSeatType());
                 // 获取key后缀
                 String keySuffix = StrUtil.join("_", each.getTrainId(), item.getDeparture(), item.getArrival());
                 // 获取该座位类型的票数量
-                Object quantityObj = stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, String.valueOf(item.getSeatType()));
+                Object quantityObj = stringRedisTemplate.opsForHash().get(TRAIN_STATION_REMAINING_TICKET + keySuffix, seatType);
                 Integer quantity = Optional.ofNullable(quantityObj)
                         .map(Object::toString)
                         .map(Integer::parseInt)
                         .orElseGet(() -> {
-                            // TODO 后续适配缓存失效逻辑
-                            return 0;
+                            // 从缓存中获取，如果没有从数据库中查询并添加到redis中
+                            Map<String, String> seatMarginMap = seatMarginCacheLoader.load(
+                                    String.valueOf(each.getTrainId()),
+                                    seatType,
+                                    item.getDeparture(),
+                                    item.getArrival()
+                            );
+                            return Optional.ofNullable(seatMarginMap.get(String.valueOf(item.getSeatType()))).map(Integer::parseInt).orElse(0);
                         });
                 SeatClassDTO seatClassDTO = SeatClassDTO.builder()
                         .type(item.getSeatType())// 席别类型
@@ -297,17 +309,26 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper,TicketDO> implem
                 log.error("订单服务调用失败，返回结果：{}", ticketOrderResult.getMessage());
                 throw new ServiceException("订单服务调用失败");
             }
-            // 发送 RocketMQ 延时消息，指定时间后取消订单
-            delayCloseOrderSendProducer.sendMessage(new DelayCloseOrderEvent(ticketOrderResult.getData()));
         } catch (Throwable ex) {
             log.error("远程调用订单服务创建错误，请求参数: {}", JSON.toJSONString(requestParam), ex);
-            // TODO 回退锁定车票
             throw ex;
         }
-        if (!ticketOrderResult.isSuccess()) {
-            log.error("远程调用订单服务创建失败，请求参数: {}", JSON.toJSONString(requestParam));
-            // TODO 回退锁定车票
-            throw new ServiceException(ticketOrderResult.getMessage());
+        try {
+            // 发送 RocketMQ 延时消息，指定时间后取消订单
+            DelayCloseOrderEvent delayCloseOrderEvent = DelayCloseOrderEvent.builder()
+                    .trainId(requestParam.getTrainId())
+                    .departure(requestParam.getDeparture())
+                    .arrival(requestParam.getArrival())
+                    .orderSn(ticketOrderResult.getData())
+                    .trainPurchaseTicketResults(trainPurchaseTicketResults)
+                    .build();
+            SendResult sendResult = delayCloseOrderSendProducer.sendMessage(delayCloseOrderEvent);
+            if (!Objects.equals(sendResult.getSendStatus(), SendStatus.SEND_OK)) {
+                throw new ServiceException("投递延迟关闭订单消息队列失败");
+            }
+        }catch (Throwable ex){
+            log.error("延迟关闭订单消息队列发送错误，请求参数：{}", JSON.toJSONString(requestParam), ex);
+            throw ex;
         }
         return new TicketPurchaseRespDTO(ticketOrderResult.getData(), ticketOrderDetailResults);
     }

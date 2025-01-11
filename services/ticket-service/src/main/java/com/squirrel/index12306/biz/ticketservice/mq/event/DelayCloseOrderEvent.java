@@ -2,6 +2,7 @@ package com.squirrel.index12306.biz.ticketservice.mq.event;
 
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,6 +12,7 @@ import java.util.List;
  * 延迟关闭订单事件
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class DelayCloseOrderEvent {
