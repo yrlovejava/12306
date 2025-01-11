@@ -20,7 +20,9 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
 
 /**
  * 列车路线信息定时任务
+ * 已通过运行时试试获取解决该定时任务
  */
+@Deprecated
 @RestController
 @RequiredArgsConstructor
 public class TrainStationJobHandler extends AbstractTrainStationJobHandlerTemplate {
