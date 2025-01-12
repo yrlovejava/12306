@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter;
+package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter.purchase;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;

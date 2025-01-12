@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter;
+package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter.purchase;
 
 import com.squirrel.index12306.biz.ticketservice.common.enums.TicketChainMarkEnum;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;

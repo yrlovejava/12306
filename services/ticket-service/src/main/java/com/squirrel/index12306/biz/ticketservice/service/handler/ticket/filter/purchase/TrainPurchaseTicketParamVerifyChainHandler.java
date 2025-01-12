@@ -1,9 +1,8 @@
-package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter;
+package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.filter.purchase;
 
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.common.constant.Index12306Constant;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainStationDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainMapper;
