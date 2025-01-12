@@ -68,6 +68,9 @@ public final class TrainSeatTypeSelector {
                     .build();
             // 策略模式选座位
             List<TrainPurchaseTicketRespDTO> aggregationResult = abstractStrategyChoose.chooseAndExecuteResp(buildStrategyKey, selectSeatDTO);
+            if (!Objects.equals(aggregationResult.size(),passengerDetails.size())){
+                throw new ServiceException("站点余票不足，请尝试更换座位类型或选择其他站点");
+            }
             // 在返回结果中添加
             actualResult.addAll(aggregationResult);
         });
