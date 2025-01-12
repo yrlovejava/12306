@@ -1,6 +1,7 @@
 package com.squirrel.index12306.framework.starter.idempotent.toolkit;
 
 import cn.hutool.core.util.ArrayUtil;
+import com.google.common.collect.Lists;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -8,6 +9,8 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Optional;
 
 /**
  * SpEL 表达式解析工具
@@ -21,11 +24,12 @@ public final class SpELUtil {
      * @return 实际使用的 spEL 表达式
      */
     public static Object parseKey(String spEl, Method method, Object[] contextObj) {
-        String spElFlag = "#";
-        if (!spEl.contains(spElFlag)) {
-            return spEl;
+        ArrayList<String> spELFlag = Lists.newArrayList("#","T(");
+        Optional<String> optional = spELFlag.stream().filter(spEl::contains).findFirst();
+        if(optional.isPresent()){
+            return parse(spEl,method,contextObj);
         }
-        return parse(spEl, method, contextObj);
+        return spEl;
     }
 
     /**
