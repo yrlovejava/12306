@@ -17,12 +17,6 @@ public class PassengerReqDTO {
     private String id;
 
     /**
-     * 用户名
-     */
-    @Schema(description = "用户名")
-    private String username;
-
-    /**
      * 真实姓名
      */
     @Schema(description = "真实姓名")

@@ -15,10 +15,4 @@ public class PassengerRemoveReqDTO {
      */
     @Schema(description = "乘车人id")
     private String id;
-
-    /**
-     * 用户名
-     */
-    @Schema(description = "用户名")
-    private String username;
 }
