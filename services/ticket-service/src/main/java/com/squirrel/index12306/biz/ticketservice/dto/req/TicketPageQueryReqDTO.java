@@ -16,13 +16,13 @@ import java.util.Date;
 public class TicketPageQueryReqDTO extends PageRequest {
 
     /**
-     * 出发地
+     * 出发地 Code(地区编码)
      */
     @Schema(description = "出发地")
     private String fromStation;
 
     /**
-     * 目的地
+     * 目的地 Code(地区编码)
      */
     @Schema(description = "目的地")
     private String toStation;
