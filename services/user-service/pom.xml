@@ -118,6 +118,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.squirrel</groupId>
+            <artifactId>index12306-idempotent-spring-boot-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>
