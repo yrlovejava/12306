@@ -14,6 +14,7 @@ import com.squirrel.index12306.biz.ticketservice.remote.dto.PassengerRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.SeatService;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.SelectSeatDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
+import com.squirrel.index12306.framework.starter.convention.exception.RemoteException;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
@@ -73,13 +74,6 @@ public final class TrainSeatTypeSelector {
         if (CollUtil.isEmpty(actualResult)) {
             throw new ServiceException("站点余票不足，请尝试更换座位类型或选择其它站点");
         }
-        // 查询车站出发站-终点站座位价格
-        LambdaQueryWrapper<TrainStationPriceDO> lambdaQueryWrapper = Wrappers.lambdaQuery(TrainStationPriceDO.class)
-                .eq(TrainStationPriceDO::getTrainId, requestParam.getTrainId())
-                .eq(TrainStationPriceDO::getDeparture, requestParam.getDeparture())
-                .eq(TrainStationPriceDO::getArrival, requestParam.getArrival())
-                .eq(TrainStationPriceDO::getSeatType, requestParam.getPassengers().get(0).getSeatType());
-        TrainStationPriceDO trainStationPriceDO = trainStationPriceMapper.selectOne(lambdaQueryWrapper);
         // 获取乘车人的id集合
         List<String> passengerIds = actualResult.stream()
                 .map(TrainPurchaseTicketRespDTO::getPassengerId)
@@ -90,27 +84,39 @@ public final class TrainSeatTypeSelector {
             // 查询乘车人信息
             passengerRemoteResult = userRemoteService.listPassengerQueryByIds(
                     UserContext.getUsername(), passengerIds);
-            if (passengerRemoteResult.isSuccess() && CollUtil.isNotEmpty(passengerRemoteResultList = passengerRemoteResult.getData())) {
-                // 选择座位的时候，PassengerInfo 中只有乘客id，这里需要给每一个乘车人赋值剩余信息
-                actualResult.forEach(each -> {
-                    String passengerId = each.getPassengerId();
-                    passengerRemoteResultList.stream()
-                            .filter(item -> Objects.equals(item.getId(), passengerId))
-                            .findFirst()
-                            .ifPresent(passenger -> {
-                                each.setIdCard(passenger.getIdCard());// 证件号
-                                each.setPhone(passenger.getPhone());// 手机号
-                                each.setSeatType(passenger.getDiscountType());// 席别类型
-                                each.setIdType(passenger.getIdType());// 证件类型
-                                each.setRealName(passenger.getRealName());// 真实姓名
-                            });
-                    each.setAmount(trainStationPriceDO.getPrice());
-                });
+            if (!passengerRemoteResult.isSuccess() || CollUtil.isEmpty(passengerRemoteResultList = passengerRemoteResult.getData())) {
+                throw new RemoteException("用户服务远程调用查询乘车人相信信息错误");
             }
         } catch (Throwable ex) {
-            log.error("用户服务远程调用查询乘车人相关信息错误", ex);
+            if (ex instanceof RemoteException) {
+                log.error("用户服务远程调用查询乘车人相信信息错误，当前用户：{}，请求参数：{}", UserContext.getUsername(), passengerIds);
+            } else {
+                log.error("用户服务远程调用查询乘车人相信信息错误，当前用户：{}，请求参数：{}", UserContext.getUsername(), passengerIds, ex);
+            }
             throw ex;
         }
+        // 选择座位的时候，PassengerInfo 中只有乘客id，这里需要给每一个乘车人赋值剩余信息
+        actualResult.forEach(each -> {
+            String passengerId = each.getPassengerId();
+            passengerRemoteResultList.stream()
+                    .filter(item -> Objects.equals(item.getId(), passengerId))
+                    .findFirst()
+                    .ifPresent(passenger -> {
+                        each.setIdCard(passenger.getIdCard());// 证件号
+                        each.setPhone(passenger.getPhone());// 手机号
+                        each.setSeatType(passenger.getDiscountType());// 席别类型
+                        each.setIdType(passenger.getIdType());// 证件类型
+                        each.setRealName(passenger.getRealName());// 真实姓名
+                    });
+            // 查询车站出发站-终点站座位价格
+            LambdaQueryWrapper<TrainStationPriceDO> lambdaQueryWrapper = Wrappers.lambdaQuery(TrainStationPriceDO.class)
+                    .eq(TrainStationPriceDO::getTrainId, requestParam.getTrainId())
+                    .eq(TrainStationPriceDO::getDeparture, requestParam.getDeparture())
+                    .eq(TrainStationPriceDO::getArrival, requestParam.getArrival())
+                    .eq(TrainStationPriceDO::getSeatType, each.getSeatType());
+            TrainStationPriceDO trainStationPriceDO = trainStationPriceMapper.selectOne(lambdaQueryWrapper);
+            each.setAmount(trainStationPriceDO.getPrice());
+        });
         // 锁定座位车票库存
         seatService.lockSeat(requestParam.getTrainId(), requestParam.getDeparture(), requestParam.getArrival(), actualResult);
         return actualResult;
