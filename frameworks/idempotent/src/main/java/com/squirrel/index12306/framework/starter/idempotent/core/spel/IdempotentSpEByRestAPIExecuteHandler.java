@@ -38,8 +38,8 @@ public class IdempotentSpEByRestAPIExecuteHandler extends AbstractIdempotentExec
     @Override
     public void handler(IdempotentParamWrapper wrapper) {
         // 在redis中设置分布式锁
-        String lockKey = wrapper.getLockKey();
-        RLock lock = redissonClient.getLock(lockKey);
+        String uniqueKey = wrapper.getIdempotent().uniqueKeyPrefix() + wrapper.getLockKey();
+        RLock lock = redissonClient.getLock(uniqueKey);
         if (!lock.tryLock()) {
             return;
         }
