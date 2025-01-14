@@ -1,6 +1,7 @@
 package com.squirrel.index12306.biz.userservice.dto.resp;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.squirrel.index12306.biz.userservice.serialize.IdCardDesensitizationSerializer;
 import com.squirrel.index12306.biz.userservice.serialize.PhoneDesensitizationSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -40,7 +41,7 @@ public class UserQueryRespDTO {
     /**
      * 手机号
      */
-    @JsonSerialize(using = PhoneDesensitizationSerializer.class)
+    @JsonSerialize(using = IdCardDesensitizationSerializer.class)
     @Schema(description = "手机号")
     private String phone;
 
