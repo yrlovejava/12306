@@ -53,7 +53,7 @@ public class TrainPurchaseTicketParamStockChainHandler implements TrainPurchaseT
                         requestParam.getArrival());
                 return Optional.ofNullable(seatMarginMap.get(String.valueOf(seatType))).map(Integer::parseInt).orElse(0);
             });
-            if (stock > passengerDetails.size()){
+            if (stock >= passengerDetails.size()){
                 return;
             }
             throw new ClientException("列车站点已无余票");
