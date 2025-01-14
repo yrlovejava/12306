@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static com.squirrel.index12306.biz.ticketservice.common.constant.Index12306Constant.ADVANCE_TICKET_DAY;
+import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.LOCK_SAFE_LOAD_SEAT_MARGIN_GET;
 import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_STATION_REMAINING_TICKET;
 
 /**
@@ -46,12 +47,10 @@ public class SeatMarginCacheLoader {
     public Map<String, String> load(String trainId, String seatType, String departure, String arrival) {
         // 剩余车票的map
         Map<String,String> trainStationRemainingTicket = new HashMap<>();
-        // TODO 锁的key写成常量
-        String distributeLockKey = "safe_load_seat_margin_distributed_lock_get:";
         // 获取key后缀
         String keySuffix = CacheUtil.buildKey(trainId,departure,arrival);
         // 获取分布式锁
-        RLock lock = redissonClient.getLock(distributeLockKey);
+        RLock lock = redissonClient.getLock(String.format(LOCK_SAFE_LOAD_SEAT_MARGIN_GET,keySuffix));
         lock.lock();
         try {
             StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
