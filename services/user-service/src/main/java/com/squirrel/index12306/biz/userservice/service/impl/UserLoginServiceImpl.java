@@ -101,7 +101,8 @@ public class UserLoginServiceImpl implements UserLoginService {
         // 构建查询条件
         LambdaQueryWrapper<UserDO> queryWrapper = Wrappers.<UserDO>lambdaQuery()
                 .eq(UserDO::getUsername, username)
-                .eq(UserDO::getPassword, requestParam.getPassword());
+                .eq(UserDO::getPassword, requestParam.getPassword())
+                .select(UserDO::getId,UserDO::getUsername,UserDO::getRealName);
         UserDO userDO = userMapper.selectOne(queryWrapper);
         if (userDO != null) {
             UserInfoDTO userInfo = UserInfoDTO.builder()
