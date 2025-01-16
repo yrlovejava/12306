@@ -18,6 +18,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+import static com.squirrel.index12306.biz.ticketservice.service.handler.ticket.TrainBusinessClassPurchaseTicketHandler.deepCopy;
+import static com.squirrel.index12306.biz.ticketservice.service.handler.ticket.TrainBusinessClassPurchaseTicketHandler.mergeArrays;
+
 /**
  * 高铁一等票购票组件
  */
@@ -47,11 +50,6 @@ public class TrainFirstClassPurchaseTicketHandler extends AbstractTrainPurchaseT
         List<String> trainCarriageList = seatService.listUsableCarriageNumber(trainId, requestParam.getSeatType(), departure, arrival);
         // 获取车厢余票
         List<Integer> trainStationCarriageRemainingTicket = seatService.listSeatRemainingTicket(trainId, departure, arrival, trainCarriageList);
-
-        // 记录各车厢剩余空闲座位的数量
-        Map<String, Integer> demotionStockNumMap = new LinkedHashMap<>(trainCarriageList.size());
-        // 记录各车厢剩余空闲座位的布局
-        Map<String, int[][]> actualSeatsMap = new HashMap<>(trainCarriageList.size());
 
         int remainingTicketSum = trainStationCarriageRemainingTicket.stream().mapToInt(Integer::intValue).sum();
         if (remainingTicketSum < passengerSeatDetails.size()) {
@@ -369,19 +367,5 @@ public class TrainFirstClassPurchaseTicketHandler extends AbstractTrainPurchaseT
         }
 
         return actualResult;
-    }
-
-    public static int[][] mergeArrays(int[][] array1, int[][] array2) {
-        List<int[]> list = new ArrayList<>(Arrays.asList(array1));
-        list.addAll(Arrays.asList(array2));
-        return list.toArray(new int[0][]);
-    }
-
-    public static int[][] deepCopy(int[][] originalArray) {
-        int[][] copy = new int[originalArray.length][originalArray[0].length];
-        for (int i = 0; i < originalArray.length; i++) {
-            System.arraycopy(originalArray[i], 0, copy[i], 0, originalArray[i].length);
-        }
-        return copy;
     }
 }
