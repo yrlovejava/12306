@@ -27,4 +27,10 @@ public final class OrderStatusReversalDTO {
      */
     @Schema(description = "订单反转后状态")
     private Integer orderStatus;
+
+    /**
+     * 订单明细反转后状态
+     */
+    @Schema(description = "订单明细反转后状态")
+    private Integer orderItemStatus;
 }

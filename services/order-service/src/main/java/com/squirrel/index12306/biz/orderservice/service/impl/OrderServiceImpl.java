@@ -264,6 +264,15 @@ public class OrderServiceImpl implements OrderService {
             if (updateResult <= 0) {
                 throw new ServiceException(OrderCanalErrorCodeEnum.ORDER_STATUS_REVERSAL_ERROR);
             }
+            // 反转订单明细的状态
+            OrderItemDO orderItemDO = new OrderItemDO();
+            orderItemDO.setStatus(requestParam.getOrderItemStatus());
+            // 修改数据库中数据
+            int orderItemUpdateResult = orderItemMapper.update(orderItemDO, Wrappers.lambdaUpdate(OrderItemDO.class)
+                    .eq(OrderItemDO::getOrderSn, requestParam.getOrderSn()));
+            if (orderItemUpdateResult <= 0){
+                throw new ServiceException(OrderCanalErrorCodeEnum.ORDER_STATUS_REVERSAL_ERROR);
+            }
         }finally {
             lock.unlock();
         }
@@ -330,12 +339,11 @@ public class OrderServiceImpl implements OrderService {
             );
             case 1 -> result = ListUtil.of(
                     OrderStatusEnum.ALREADY_PAID.getStatus(),
-                    OrderStatusEnum.PARTIAL_REFUND.getStatus()
+                    OrderStatusEnum.PARTIAL_REFUND.getStatus(),
+                    OrderStatusEnum.FULL_REFUND.getStatus()
             );
             case 2 -> result = ListUtil.of(
-                    OrderStatusEnum.FULL_REFUND.getStatus(),
-                    OrderStatusEnum.COMPLETED.getStatus(),
-                    OrderStatusEnum.CLOSED.getStatus()
+                    OrderStatusEnum.COMPLETED.getStatus()
             );
         }
         return result;

@@ -55,7 +55,15 @@ public class PassengerServiceImpl implements PassengerService {
     @Override
     public List<PassengerRespDTO> listPassengerQueryByUsername(String username) {
         // 在redis中获取乘车人信息，如果没有从数据库中查询并添加到redis中
-        String actualUserPassengerListStr = distributedCache.safeGet(
+        String actualUserPassengerListStr = this.getActualUserPassengerListStr(username);
+        return Optional.ofNullable(actualUserPassengerListStr)
+                .map(each -> JSON.parseArray(each,PassengerDO.class))
+                .map(each -> BeanUtil.convert(each, PassengerRespDTO.class))
+                .orElse(null);
+    }
+
+    private String getActualUserPassengerListStr(String username){
+        return distributedCache.safeGet(
                 USER_PASSENGER_LIST + username,
                 String.class,
                 () -> {
@@ -66,10 +74,6 @@ public class PassengerServiceImpl implements PassengerService {
                 1,
                 TimeUnit.DAYS
         );
-        return Optional.ofNullable(actualUserPassengerListStr)
-                .map(each -> JSON.parseArray(each,PassengerDO.class))
-                .map(each -> BeanUtil.convert(each, PassengerRespDTO.class))
-                .orElse(null);
     }
 
     /**
@@ -82,22 +86,11 @@ public class PassengerServiceImpl implements PassengerService {
     @Override
     public List<PassengerActualRespDTO> listPassengerQueryByIds(String username, List<Long> ids) {
         // 在redis中获取乘车人信息，如果没有从数据库中查询并添加到redis中
-        String actualUserPassengerListStr = distributedCache.safeGet(
-                USER_PASSENGER_LIST + username,
-                String.class,
-                () -> {
-                    List<PassengerDO> passengerDOList = passengerMapper.selectList(Wrappers.lambdaQuery(PassengerDO.class)
-                            .eq(PassengerDO::getUsername, username)
-                            .in(PassengerDO::getId, ids));
-                    return CollUtil.isNotEmpty(passengerDOList) ? JSON.toJSONString(passengerDOList) : null;
-                },
-                1,
-                TimeUnit.DAYS
-        );
-        return Optional.ofNullable(actualUserPassengerListStr)
-                .map(each -> JSON.parseArray(each,PassengerDO.class))
-                .map(each -> BeanUtil.convert(each, PassengerActualRespDTO.class))
-                .orElse(null);
+        String actualUserPassengerListStr = this.getActualUserPassengerListStr(username);
+        return JSON.parseArray(actualUserPassengerListStr,PassengerDO.class)
+                .stream().filter(passengerDO -> ids.contains(passengerDO.getId()))
+                .map(each -> BeanUtil.convert(each,PassengerActualRespDTO.class))
+                .toList();
     }
 
     /**

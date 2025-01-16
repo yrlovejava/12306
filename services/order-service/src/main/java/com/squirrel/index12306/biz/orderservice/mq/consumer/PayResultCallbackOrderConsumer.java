@@ -1,6 +1,7 @@
 package com.squirrel.index12306.biz.orderservice.mq.consumer;
 
 import com.squirrel.index12306.biz.orderservice.common.constant.OrderRocketMQConstant;
+import com.squirrel.index12306.biz.orderservice.common.enums.OrderItemStatusEnum;
 import com.squirrel.index12306.biz.orderservice.common.enums.OrderStatusEnum;
 import com.squirrel.index12306.biz.orderservice.dto.domain.OrderStatusReversalDTO;
 import com.squirrel.index12306.biz.orderservice.mq.domain.MessageWrapper;
@@ -45,6 +46,7 @@ public class PayResultCallbackOrderConsumer implements RocketMQListener<MessageW
         OrderStatusReversalDTO orderStatusReversalDTO = OrderStatusReversalDTO.builder()
                 .orderSn(payResultCallbackOrderEvent.getOrderSn())
                 .orderStatus(OrderStatusEnum.ALREADY_PAID.getStatus())
+                .orderItemStatus(OrderItemStatusEnum.ALREADY_PAID.getStatus())
                 .build();
         // 修改订单状态
         orderService.statusReversal(orderStatusReversalDTO);
