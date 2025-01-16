@@ -19,7 +19,7 @@ public class DistributedIdAutoConfiguration {
      * @return 雪花算法ID
      */
     @Bean
-    @ConditionalOnProperty("spring.redis.host")
+    @ConditionalOnProperty("spring.data.redis.host")
     public LocalRedisWorkIdChoose redisWorkIdChoose() {
         return new LocalRedisWorkIdChoose();
     }
