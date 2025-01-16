@@ -56,8 +56,8 @@ public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurcha
         // 乘车人信息
         List<PurchaseTicketPassengerDetailDTO> passengerSeatDetails = requestParam.getPassengerSeatDetails();
 
-        // 判断哪个车厢有座位。获取对应座位类型的车厢号集合，依次进行判断数据是否有余票
-        List<String> trainCarriageList = carriageService.listCarriageNumber(trainId, requestParam.getSeatType());
+        // 查询有余票的车厢号集合
+        List<String> trainCarriageList = seatService.listUsableCarriageNumber(trainId, requestParam.getSeatType(),departure,arrival);
         // 获取车厢余票
         List<Integer> trainStationCarriageRemainingTicket = seatService.listSeatRemainingTicket(trainId, departure, arrival, trainCarriageList);
 
