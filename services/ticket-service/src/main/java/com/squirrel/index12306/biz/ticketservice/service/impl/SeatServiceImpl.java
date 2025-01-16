@@ -90,6 +90,31 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, SeatDO> implements 
     }
 
     /**
+     * 查询列车有余票的车厢号集合
+     *
+     * @param trainId      列车 ID
+     * @param carriageType 车厢类型
+     * @param departure    出发站
+     * @param arrival      到达站
+     * @return 车厢号集合
+     */
+    @Override
+    public List<String> listUsableCarriageNumber(String trainId, Integer carriageType, String departure, String arrival) {
+        // 构造查询条件
+        LambdaQueryWrapper<SeatDO> queryWrapper = Wrappers.lambdaQuery(SeatDO.class)
+                .eq(SeatDO::getTrainId,trainId) // 列车id
+                .eq(SeatDO::getSeatType,carriageType) // 座位类型
+                .eq(SeatDO::getStartStation,departure) // 起始站
+                .eq(SeatDO::getEndStation,arrival) // 终点站
+                .eq(SeatDO::getSeatStatus,SeatStatusEnum.AVAILABLE.getCode()) // 座位状态为可选
+                .groupBy(SeatDO::getCarriageNumber) // 根据车厢号分组
+                .select(SeatDO::getCarriageNumber); // 只查找车厢号
+        // 在数据库中查询
+        List<SeatDO> seatDOList = seatMapper.selectList(queryWrapper);
+        return seatDOList.stream().map(SeatDO::getCarriageNumber).toList();
+    }
+
+    /**
      * 锁定选中以及沿途车票状态
      *
      * @param trainId                     列车 ID

@@ -167,6 +167,8 @@ public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurcha
 
                 // 如果同车厢也无法匹配，则对用户座位再次降级，不同车厢不邻座
                 if (Objects.isNull(select)) {
+                    // 需要的座位数量
+                    int undistributedPassengerSize = passengerSeatDetails.size();
                     for (Map.Entry<String, Integer> entry : demotionStockNumMap.entrySet()) {
                         // 车厢号
                         String carriageNumberBack = entry.getKey();
@@ -175,9 +177,14 @@ public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurcha
                         // 获取该车厢的座位布局
                         int[][] seats = actualSeatsMap.get(carriageNumberBack);
                         // 选择同车厢不邻座
-                        int[][] nonAdjacentSeats = SeatSelection.nonAdjacent(demotionStockNumBack, seats);
+                        int[][] nonAdjacentSeats = SeatSelection.nonAdjacent(Math.min(undistributedPassengerSize, demotionStockNumBack), seats);
+                        // 更新所需的座位数量
+                        undistributedPassengerSize -= demotionStockNumBack;
                         // 记录可以选择的位置
                         carriagesNumberSeatsMap.put(entry.getKey(), nonAdjacentSeats);
+                        if(undistributedPassengerSize <= 0){
+                            break;
+                        }
                     }
                 }
             }
@@ -265,7 +272,7 @@ public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurcha
                     for (int[] ints : select) {
                         actualSeatsTrainScript[ints[0] - 1][ints[1] - 1] = 1;
                     }
-                    actualSelects.add(actualSeatsTrainScript);
+                    actualSelects.add(select);
                 }
             }
 
@@ -275,8 +282,9 @@ public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurcha
                 for (int j = 0; j < actualSelects.size(); j++) {
                     if (j == 0) {
                         actualSelect = mergeArrays(actualSelects.get(j), actualSelects.get(j + 1));
-                    } else {
-                        actualSelect = mergeArrays(actualSelect, actualSelects.get(j + 2));
+                    }
+                    if (j != 0 && actualSelects.size() > 2){
+                        actualSelect = mergeArrays(actualSelect,actualSelects.get(i+1));
                     }
                 }
                 // 将结果保存到carriagesNumberSeatsMap 中
@@ -322,14 +330,27 @@ public class TrainBusinessClassPurchaseTicketHandler extends AbstractTrainPurcha
             }
         }
 
-        // 如果同车厢也已无法匹配，则对用户座位再次降级：不同车厢不邻座
+
+        // 如果同车厢也无法匹配，则对用户座位再次降级，不同车厢不邻座
         if (CollUtil.isEmpty(carriagesNumberSeatsMap)) {
+            // 需要的座位数量
+            int undistributedPassengerSize = passengerSeatDetails.size();
             for (Map.Entry<String, Integer> entry : demotionStockNumMap.entrySet()) {
-                String carriagesNumberBack = entry.getKey();
+                // 车厢号
+                String carriageNumberBack = entry.getKey();
+                // 空闲座位数量
                 int demotionStockNumBack = entry.getValue();
-                int[][] seats = actualSeatsMap.get(carriagesNumberBack);
-                int[][] nonAdjacentSeats = SeatSelection.nonAdjacent(demotionStockNumBack, seats);
+                // 获取该车厢的座位布局
+                int[][] seats = actualSeatsMap.get(carriageNumberBack);
+                // 选择同车厢不邻座
+                int[][] nonAdjacentSeats = SeatSelection.nonAdjacent(Math.min(undistributedPassengerSize, demotionStockNumBack), seats);
+                // 更新所需的座位数量
+                undistributedPassengerSize -= demotionStockNumBack;
+                // 记录可以选择的位置
                 carriagesNumberSeatsMap.put(entry.getKey(), nonAdjacentSeats);
+                if(undistributedPassengerSize <= 0){
+                    break;
+                }
             }
         }
 
