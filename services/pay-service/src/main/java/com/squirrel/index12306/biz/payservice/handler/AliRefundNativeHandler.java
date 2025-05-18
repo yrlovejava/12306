@@ -1,6 +1,7 @@
 package com.squirrel.index12306.biz.payservice.handler;
 
 import cn.hutool.core.text.StrBuilder;
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
@@ -63,7 +64,7 @@ public final class AliRefundNativeHandler extends AbstractRefundHandler implemen
                     aliRefundRequest.getTradeNo(),
                     aliRefundRequest.getPayAmount(),
                     responseJson);
-            if (!StringUtils.equals(SUCCESS_CODE, response.getCode()) || !StringUtils.equals(FUND_CHANGE, response.getFundChange())) {
+            if (!StrUtil.equals(SUCCESS_CODE, response.getCode()) || !StrUtil.equals(FUND_CHANGE, response.getFundChange())) {
                 throw new ServiceException("退款失败");
             }
             return RefundResponse.builder()

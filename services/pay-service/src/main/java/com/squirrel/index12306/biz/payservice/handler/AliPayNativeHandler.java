@@ -76,7 +76,7 @@ public final class AliPayNativeHandler extends AbstractPayHandler implements Abs
                     aliPayRequest.getOrderRequestId(),
                     aliPayRequest.getTotalAmount(),
                     response.getBody());
-            if(StringUtils.equals(SUCCESS_CODE,response.getCode())){
+            if(!StrUtil.equals(SUCCESS_CODE,response.getCode())){
                 throw new ServiceException("支付失败");
             }
             return new PayResponse(StrUtil.replace(StrUtil.replace(response.getBody(), "\"", "'"), "\n", ""));
