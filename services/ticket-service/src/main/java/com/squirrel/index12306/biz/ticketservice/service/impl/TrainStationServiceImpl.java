@@ -48,7 +48,9 @@ public class TrainStationServiceImpl implements TrainStationService {
     public List<RouteDTO> listTrainStationRoute(String trainId, String departure, String arrival) {
         // 查询所有站点
         List<TrainStationDO> trainStationDOList = trainStationMapper.selectList(Wrappers.lambdaQuery(TrainStationDO.class)
-                .eq(TrainStationDO::getTrainId, trainId));
+                .eq(TrainStationDO::getTrainId, trainId)
+                .select(TrainStationDO::getDeparture)
+        );
         // 解析站点信息
         List<String> trainStationAllList = trainStationDOList.stream()
                 .map(TrainStationDO::getDeparture)
