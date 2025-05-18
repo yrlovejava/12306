@@ -10,8 +10,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
+import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassengerDetailDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
+import com.squirrel.index12306.biz.ticketservice.dto.domain.SeatTypeCountDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.SeatService;
 import com.squirrel.index12306.biz.ticketservice.service.TrainStationService;
@@ -45,6 +47,7 @@ public final class TicketAvailabilityTokenBucket {
     private final DistributedCache distributedCache;
     private final SeatService seatService;
     private final RedissonClient redissonClient;
+    private final SeatMapper seatMapper;
 
     private static final String LUA_TICKET_AVAILABILITY_TOKEN_BUCKET_PATH = "lua/ticketAvailabilityTokenBucketLua.lua";
 
@@ -76,17 +79,11 @@ public final class TicketAvailabilityTokenBucket {
                     List<Integer> seatTypes = VehicleTypeEnum.HIGH_SPEED_RAIN.getSeatTypes();
                     Map<String, String> ticketAvailabilityTokenBucketMap = new HashMap<>();
                     for (RouteDTO routeDTO : routeDTOList) {
-                        for (Integer seatType : seatTypes) {
-                            // 查询当前路线的座位余量
-                            LambdaQueryWrapper<SeatDO> queryWrapper = Wrappers.lambdaQuery(SeatDO.class)
-                                    .eq(SeatDO::getStartStation, routeDTO.getStartStation())
-                                    .eq(SeatDO::getEndStation, routeDTO.getEndStation())
-                                    .eq(SeatDO::getSeatType, seatType)
-                                    .eq(SeatDO::getSeatStatus, SeatStatusEnum.AVAILABLE.getCode())
-                                    .eq(SeatDO::getTrainId, Long.valueOf(requestParam.getTrainId()));
-                            String buildCacheKey = StrUtil.join("_", routeDTO.getStartStation(), routeDTO.getEndStation(), seatType);
-                            long count = seatService.count(queryWrapper);
-                            ticketAvailabilityTokenBucketMap.put(buildCacheKey, String.valueOf(count));
+                        List<SeatTypeCountDTO> seatTypeCountDTOList = seatMapper.listSeatTypeCount(Long.parseLong(requestParam.getTrainId()), routeDTO.getStartStation(), routeDTO.getEndStation(), seatTypes);
+
+                        for (SeatTypeCountDTO each : seatTypeCountDTOList) {
+                            String buildCacheKey = StrUtil.join("_", routeDTO.getStartStation(), routeDTO.getEndStation(), each.getSeatType());
+                            ticketAvailabilityTokenBucketMap.put(buildCacheKey,String.valueOf(each.getSeatCount()));
                         }
                     }
                     stringRedisTemplate.opsForHash().putAll(TICKET_AVAILABILITY_TOKEN_BUCKET + requestParam.getTrainId(), ticketAvailabilityTokenBucketMap);
