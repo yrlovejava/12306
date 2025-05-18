@@ -11,7 +11,16 @@ public interface AbstractExecuteStrategy<REQUEST, RESPONSE> {
      * 执行策略标识
      * @return 策略标识
      */
-    String mark();
+    default String mark(){
+        return null;
+    }
+
+    /**
+     * 执行策略范匹配标识
+     */
+    default String patternMatchMark() {
+        return null;
+    }
 
     /**
      * 执行策略

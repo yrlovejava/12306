@@ -4,10 +4,12 @@ import com.squirrel.index12306.framework.starter.bases.ApplicationContextHolder;
 import com.squirrel.index12306.framework.starter.bases.init.ApplicationInitializingEvent;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import org.springframework.context.ApplicationListener;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * 策略选择器
@@ -22,10 +24,18 @@ public class AbstractStrategyChoose implements ApplicationListener<ApplicationIn
     /**
      * 根据 mark 查询具体策略并
      *
-     * @param mark 策略标识
+     * @param mark          策略标识
+     * @param predicateFlag 匹配范解析标识
      * @return 实际执行策略
      */
-    public AbstractExecuteStrategy choose(String mark) {
+    public AbstractExecuteStrategy choose(String mark, Boolean predicateFlag) {
+        if (predicateFlag != null && predicateFlag) {
+            return abstractExecuteStrategyMap.values().stream()
+                    .filter(each -> StringUtils.hasText(each.patternMatchMark()))
+                    .filter(each -> Pattern.compile(each.patternMatchMark()).matcher(mark).matches())
+                    .findFirst()
+                    .orElseThrow(() -> new ServiceException("策略未定义"));
+        }
         return Optional.ofNullable(abstractExecuteStrategyMap.get(mark)).orElseThrow(() -> new ServiceException(String.format("[%s] 策略未定义", mark)));
     }
 
@@ -37,25 +47,40 @@ public class AbstractStrategyChoose implements ApplicationListener<ApplicationIn
      * @param <REQUEST>    执行策略入参泛型
      */
     public <REQUEST> void chooseAndExecute(String mark, REQUEST requestParam) {
-        AbstractExecuteStrategy executeStrategy = this.choose(mark);
+        AbstractExecuteStrategy executeStrategy = this.choose(mark, null);
+        executeStrategy.execute(requestParam);
+    }
+
+    /**
+     * 根据 mark 查询具体策略并执行
+     *
+     * @param mark         策略标识
+     * @param requestParam 执行策略入参
+     * @param predicateFlag 匹配范解析标识
+     * @param <REQUEST>    执行策略入参泛型
+     */
+    public <REQUEST> void chooseAndExecute(String mark, REQUEST requestParam,Boolean predicateFlag) {
+        AbstractExecuteStrategy executeStrategy = this.choose(mark, predicateFlag);
         executeStrategy.execute(requestParam);
     }
 
     /**
      * 根据 mark 查询具体策略并执行，带返回结果
-     * @param mark 策略标识
-     * @param requestParam 执行策略入参
+     *
+     * @param mark          策略标识
+     * @param requestParam  执行策略入参
+     * @param <REQUEST>     执行策略入参泛型
+     * @param <RESPONSE>    执行结果出参泛型
      * @return 执行结果
-     * @param <REQUEST> 执行策略入参泛型
-     * @param <RESPONSE> 执行结果出参泛型
      */
-    public <REQUEST,RESPONSE> RESPONSE chooseAndExecuteResp(String mark, REQUEST requestParam) {
-        AbstractExecuteStrategy executeStrategy = this.choose(mark);
+    public <REQUEST, RESPONSE> RESPONSE chooseAndExecuteResp(String mark, REQUEST requestParam) {
+        AbstractExecuteStrategy executeStrategy = this.choose(mark, null);
         return (RESPONSE) executeStrategy.executeResp(requestParam);
     }
 
     /**
      * 实现策略注册
+     *
      * @param event 监听Spring应用启动事件
      */
     @Override
