@@ -2,7 +2,7 @@ package com.squirrel.index12306.biz.payservice.handler;
 
 import com.squirrel.index12306.biz.payservice.common.enums.PayChannelEnum;
 import com.squirrel.index12306.biz.payservice.common.enums.TradeStatusEnum;
-import com.squirrel.index12306.biz.payservice.dto.PayCallbackReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.req.PayCallbackReqDTO;
 import com.squirrel.index12306.biz.payservice.dto.base.AliPayCallbackRequest;
 import com.squirrel.index12306.biz.payservice.dto.base.PayCallbackRequest;
 import com.squirrel.index12306.biz.payservice.handler.base.AbstractPayCallbackHandler;

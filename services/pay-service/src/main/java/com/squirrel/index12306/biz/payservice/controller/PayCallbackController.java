@@ -5,7 +5,7 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.date.DateUtil;
 import com.squirrel.index12306.biz.payservice.common.enums.PayChannelEnum;
 import com.squirrel.index12306.biz.payservice.convert.PayCallbackRequestConvert;
-import com.squirrel.index12306.biz.payservice.dto.PayCallbackCommand;
+import com.squirrel.index12306.biz.payservice.dto.command.PayCallbackCommand;
 import com.squirrel.index12306.biz.payservice.dto.base.PayCallbackRequest;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractStrategyChoose;
 import lombok.RequiredArgsConstructor;

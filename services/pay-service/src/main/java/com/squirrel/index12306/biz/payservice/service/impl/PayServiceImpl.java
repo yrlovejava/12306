@@ -1,15 +1,23 @@
 package com.squirrel.index12306.biz.payservice.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.squirrel.index12306.biz.payservice.common.enums.TradeStatusEnum;
+import com.squirrel.index12306.biz.payservice.convert.RefundRequestConvert;
 import com.squirrel.index12306.biz.payservice.dao.entity.PayDO;
 import com.squirrel.index12306.biz.payservice.dao.mapper.PayMapper;
-import com.squirrel.index12306.biz.payservice.dto.PayCallbackReqDTO;
-import com.squirrel.index12306.biz.payservice.dto.PayInfoRespDTO;
-import com.squirrel.index12306.biz.payservice.dto.PayRespDTO;
+import com.squirrel.index12306.biz.payservice.dto.base.RefundRequest;
+import com.squirrel.index12306.biz.payservice.dto.base.RefundResponse;
+import com.squirrel.index12306.biz.payservice.dto.command.RefundCommand;
+import com.squirrel.index12306.biz.payservice.dto.req.PayCallbackReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.req.RefundReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.resp.PayInfoRespDTO;
+import com.squirrel.index12306.biz.payservice.dto.resp.PayRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
 import com.squirrel.index12306.biz.payservice.dto.base.PayResponse;
+import com.squirrel.index12306.biz.payservice.dto.resp.RefundRespDTO;
 import com.squirrel.index12306.biz.payservice.mq.event.PayResultCallbackOrderEvent;
 import com.squirrel.index12306.biz.payservice.mq.producer.PayResultCallbackOrderSendProduce;
 import com.squirrel.index12306.biz.payservice.service.PayService;
@@ -134,5 +142,41 @@ public class PayServiceImpl implements PayService {
         PayDO payDO = payMapper.selectOne(Wrappers.lambdaQuery(PayDO.class)
                 .eq(PayDO::getPaySn, paySn));
         return BeanUtil.convert(payDO, PayInfoRespDTO.class);
+    }
+
+    /**
+     * 公共退款接口
+     * @param requestParam 退款请求参数
+     * @return 退款响应参数
+     */
+    @Override
+    public RefundRespDTO commonRefund(RefundReqDTO requestParam) {
+        LambdaQueryWrapper<PayDO> queryWrapper = Wrappers.lambdaQuery(PayDO.class)
+                .eq(PayDO::getOrderSn, requestParam.getOrderSn());
+        PayDO payDO = payMapper.selectOne(queryWrapper);
+        if(Objects.isNull(payDO)){
+            log.error("支付单不存在,orderSn: {}",requestParam.getOrderSn());
+            throw new ServiceException("支付单不存在");
+        }
+
+        /**
+         * {@link com.squirrel.index12306.biz.payservice.handler.AliPayNativeHandler}
+         */
+        // 策略模式：通过策略模式封装支付渠道和支付场景，用户支付时动态选择对应的支付组件
+        RefundCommand refundCommand = BeanUtil.convert(payDO, RefundCommand.class);
+        // 转换为退款请求
+        RefundRequest refundRequest = RefundRequestConvert.command2RefundRequest(refundCommand);
+        // 执行策略
+        RefundResponse result = abstractStrategyChoose.chooseAndExecuteResp(refundRequest.buildMark(), refundRequest);
+        // 修改DB
+        LambdaUpdateWrapper<PayDO> updateWrapper = Wrappers.lambdaUpdate(PayDO.class)
+                .eq(PayDO::getOrderSn, requestParam.getOrderSn());
+        int updateResult = payMapper.update(payDO, updateWrapper);
+        if (updateResult <= 0) {
+            log.error("修改支付单退款结果失败，支付单信息：{}", JSON.toJSONString(payDO));
+            throw new ServiceException("修改支付单退款结果失败");
+        }
+
+        return new RefundRespDTO();
     }
 }

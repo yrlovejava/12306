@@ -1,7 +1,7 @@
 package com.squirrel.index12306.biz.payservice.convert;
 
 import com.squirrel.index12306.biz.payservice.common.enums.PayChannelEnum;
-import com.squirrel.index12306.biz.payservice.dto.PayCommand;
+import com.squirrel.index12306.biz.payservice.dto.command.PayCommand;
 import com.squirrel.index12306.biz.payservice.dto.base.AliPayRequest;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;

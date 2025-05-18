@@ -1,9 +1,11 @@
 package com.squirrel.index12306.biz.payservice.service;
 
-import com.squirrel.index12306.biz.payservice.dto.PayCallbackReqDTO;
-import com.squirrel.index12306.biz.payservice.dto.PayInfoRespDTO;
-import com.squirrel.index12306.biz.payservice.dto.PayRespDTO;
+import com.squirrel.index12306.biz.payservice.dto.req.PayCallbackReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.req.RefundReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.resp.PayInfoRespDTO;
+import com.squirrel.index12306.biz.payservice.dto.resp.PayRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
+import com.squirrel.index12306.biz.payservice.dto.resp.RefundRespDTO;
 
 /**
  * 支付层接口
@@ -40,4 +42,12 @@ public interface PayService {
      * @return 支付单详情
      */
     PayInfoRespDTO getPayInfoByPaySn(String paySn);
+
+    /**
+     * 公共退款接口
+     *
+     * @param requestParam 退款请求参数
+     * @return 退款响应参数
+     */
+    RefundRespDTO commonRefund(RefundReqDTO requestParam);
 }

@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.payservice.dto;
+package com.squirrel.index12306.biz.payservice.dto.command;
 
 import com.squirrel.index12306.biz.payservice.dto.base.AbstractPayRequest;
 import io.swagger.v3.oas.annotations.media.Schema;

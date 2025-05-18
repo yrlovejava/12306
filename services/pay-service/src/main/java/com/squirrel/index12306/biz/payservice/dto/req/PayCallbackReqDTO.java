@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.payservice.dto;
+package com.squirrel.index12306.biz.payservice.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

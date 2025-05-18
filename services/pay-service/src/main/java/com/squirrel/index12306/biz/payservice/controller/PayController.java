@@ -1,10 +1,12 @@
 package com.squirrel.index12306.biz.payservice.controller;
 
 import com.squirrel.index12306.biz.payservice.convert.PayRequestConvert;
-import com.squirrel.index12306.biz.payservice.dto.PayCommand;
-import com.squirrel.index12306.biz.payservice.dto.PayInfoRespDTO;
-import com.squirrel.index12306.biz.payservice.dto.PayRespDTO;
+import com.squirrel.index12306.biz.payservice.dto.command.PayCommand;
+import com.squirrel.index12306.biz.payservice.dto.req.RefundReqDTO;
+import com.squirrel.index12306.biz.payservice.dto.resp.PayInfoRespDTO;
+import com.squirrel.index12306.biz.payservice.dto.resp.PayRespDTO;
 import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
+import com.squirrel.index12306.biz.payservice.dto.resp.RefundRespDTO;
 import com.squirrel.index12306.biz.payservice.service.PayService;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.web.Results;
@@ -57,5 +59,15 @@ public class PayController {
     @GetMapping("/api/pay-service/pay/query/pay-sn")
     public Result<PayInfoRespDTO> getPayInfoByPaySn(@RequestParam(value = "paySn") String paySn) {
         return Results.success(payService.getPayInfoByPaySn(paySn));
+    }
+
+    /**
+     * 公共退款接口
+     * @param requestParam 退款参数
+     * @return 退款结果
+     */
+    @Operation(summary = "退款")
+    public Result<RefundRespDTO> refund(@RequestBody RefundReqDTO requestParam){
+        return Results.success(payService.commonRefund(requestParam));
     }
 }
