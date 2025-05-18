@@ -177,7 +177,9 @@ public class OrderServiceImpl implements OrderService {
     public boolean closeTickOrder(CancelTicketOrderReqDTO requestParam) {
         // 在数据库中查询订单
         OrderDO orderDO = orderMapper.selectOne(Wrappers.lambdaQuery(OrderDO.class)
-                .eq(OrderDO::getOrderSn, requestParam.getOrderSn()));
+                .eq(OrderDO::getOrderSn, requestParam.getOrderSn())
+                .select(OrderDO::getStatus)
+        );
         // 判断订单状态，只有待付款状态才能关闭
         if (Objects.isNull(orderDO) || orderDO.getStatus() != OrderStatusEnum.PENDING_PAYMENT.getStatus()) {
             return false;
