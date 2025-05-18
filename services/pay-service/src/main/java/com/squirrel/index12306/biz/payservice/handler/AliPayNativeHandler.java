@@ -17,10 +17,12 @@ import com.squirrel.index12306.biz.payservice.dto.base.PayRequest;
 import com.squirrel.index12306.biz.payservice.dto.base.PayResponse;
 import com.squirrel.index12306.biz.payservice.handler.base.AbstractPayHandler;
 import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
+import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractExecuteStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 /**
@@ -32,6 +34,8 @@ import org.springframework.stereotype.Service;
 public final class AliPayNativeHandler extends AbstractPayHandler implements AbstractExecuteStrategy<PayRequest, PayResponse> {
 
     private final AliPayProperties aliPayProperties;
+
+    private final static String SUCCESS_CODE = "10000";
 
     /**
      * 阿里支付
@@ -63,15 +67,22 @@ public final class AliPayNativeHandler extends AbstractPayHandler implements Abs
         request.setNotifyUrl(aliPayProperties.getNotifyUrl());
         // 支付请求的业务模型
         request.setBizModel(model);
-        // 执行页面支付请求并返回响应
-        AlipayTradePayResponse response = alipayClient.pageExecute(request);
-        log.info("发起支付宝支付，订单号：{}，子订单号：{}，订单请求号：{}，订单金额：{} \n调用支付返回：\n\n{}\n",
-                aliPayRequest.getOrderSn(),
-                aliPayRequest.getOutOrderSn(),
-                aliPayRequest.getOrderRequestId(),
-                aliPayRequest.getTotalAmount(),
-                response.getBody());
-        return new PayResponse(StrUtil.replace(StrUtil.replace(response.getBody(), "\"", "'"), "\n", ""));
+        try {
+            // 执行页面支付请求并返回响应
+            AlipayTradePayResponse response = alipayClient.pageExecute(request);
+            log.info("发起支付宝支付，订单号：{}，子订单号：{}，订单请求号：{}，订单金额：{} \n调用支付返回：\n\n{}\n",
+                    aliPayRequest.getOrderSn(),
+                    aliPayRequest.getOutOrderSn(),
+                    aliPayRequest.getOrderRequestId(),
+                    aliPayRequest.getTotalAmount(),
+                    response.getBody());
+            if(StringUtils.equals(SUCCESS_CODE,response.getCode())){
+                throw new ServiceException("支付失败");
+            }
+            return new PayResponse(StrUtil.replace(StrUtil.replace(response.getBody(), "\"", "'"), "\n", ""));
+        }catch (AlipayApiException ex){
+            throw new ServiceException("调用支付宝支付异常");
+        }
     }
 
     @Override
