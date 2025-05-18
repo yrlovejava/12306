@@ -38,8 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import static com.squirrel.index12306.biz.userservice.common.constant.RedisKeyConstant.USER_DELETION;
-import static com.squirrel.index12306.biz.userservice.common.constant.RedisKeyConstant.USER_REGISTER_REUSE_SHARDING;
+import static com.squirrel.index12306.biz.userservice.common.constant.RedisKeyConstant.*;
 import static com.squirrel.index12306.biz.userservice.common.enums.UserRegisterErrorCodeEnum.*;
 
 /**
@@ -172,59 +171,74 @@ public class UserLoginServiceImpl implements UserLoginService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UserRegisterRespDTO register(UserRegisterReqDTO requestParam) {
+        // 责任链模式校验传参
         abstractChainContext.handler(UserChainMarkEnum.USER_REGISTER_FILTER.name(), requestParam);
-        try {
-            int inserted = userMapper.insert(BeanUtil.convert(requestParam, UserDO.class));
-            if (inserted < 1) {
-                throw new ServiceException(USER_REGISTER_FAIL);
-            }
-        } catch (DuplicateKeyException dke) {
-            log.error("用户名 [{}] 重复注册", requestParam.getUsername());
+        // 分布式锁防止恶意注册
+        RLock lock = redissonClient.getLock(LOCK_USER_REGISTER + requestParam.getUsername());
+        boolean tryLock = lock.tryLock();
+        if(!tryLock){
             throw new ServiceException(HAS_USERNAME_NOTNULL);
         }
 
-        // 在手机号表中插入数据
-        UserPhoneDO userPhoneDO = UserPhoneDO.builder()
-                .phone(requestParam.getPhone())
-                .username(requestParam.getUsername())
-                .build();
         try {
-            userPhoneMapper.insert(userPhoneDO);
-        }catch (DuplicateKeyException dke) {
-            log.error("用户 [{}] 注册手机号 [{}] 重复", requestParam.getUsername(), requestParam.getPhone());
-            throw new ServiceException(PHONE_REGISTERED);
-        }
+            // 在数据库中插入数据
+            try {
+                int inserted = userMapper.insert(BeanUtil.convert(requestParam, UserDO.class));
+                if (inserted < 1) {
+                    throw new ServiceException(USER_REGISTER_FAIL);
+                }
+            } catch (DuplicateKeyException dke) {
+                log.error("用户名 [{}] 重复注册", requestParam.getUsername());
+                throw new ServiceException(HAS_USERNAME_NOTNULL);
+            }
 
-        // 如果邮箱字段不为空，在邮箱表中插入数据
-        if (StrUtil.isNotBlank(requestParam.getMail())) {
-            UserMailDO userMailDO = UserMailDO.builder()
-                    .mail(requestParam.getMail())
+            // 在手机号表中插入数据
+            UserPhoneDO userPhoneDO = UserPhoneDO.builder()
+                    .phone(requestParam.getPhone())
                     .username(requestParam.getUsername())
                     .build();
             try {
-                userMailMapper.insert(userMailDO);
+                userPhoneMapper.insert(userPhoneDO);
             } catch (DuplicateKeyException dke) {
-                log.error("用户 [{}] 注册邮箱 [{}] 重复", requestParam.getUsername(), requestParam.getMail());
-                throw new ServiceException(MAIL_REGISTERED);
+                log.error("用户 [{}] 注册手机号 [{}] 重复", requestParam.getUsername(), requestParam.getPhone());
+                throw new ServiceException(PHONE_REGISTERED);
             }
+
+            // 如果邮箱字段不为空，在邮箱表中插入数据
+            if (StrUtil.isNotBlank(requestParam.getMail())) {
+                UserMailDO userMailDO = UserMailDO.builder()
+                        .mail(requestParam.getMail())
+                        .username(requestParam.getUsername())
+                        .build();
+                try {
+                    userMailMapper.insert(userMailDO);
+                } catch (DuplicateKeyException dke) {
+                    log.error("用户 [{}] 注册邮箱 [{}] 重复", requestParam.getUsername(), requestParam.getMail());
+                    throw new ServiceException(MAIL_REGISTERED);
+                }
+            }
+
+            // 先删数据库，再删缓存
+            // 获取用户名
+            String username = requestParam.getUsername();
+            // 删除数据库中可复用的用户名数据
+            userReuseMapper.delete(Wrappers.update(
+                    UserReuseDO.builder()
+                            .username(username)
+                            .build())
+            );
+
+            // 在可复用的用户名的集合中删除
+            StringRedisTemplate instance = (StringRedisTemplate) distributedCache.getInstance();
+            instance.opsForSet().remove(USER_REGISTER_REUSE_SHARDING + UserReuseUtil.hashShardingIdx(username), username);
+
+            // 在布隆过滤器中添加
+            userRegisterCachePenetrationBloomFilter.add(username);
+        }finally {
+            // 先释放锁再提交事务可能会有并发问题但是这里有用户名的数据库唯一索引，所以不会有问题
+            lock.unlock();
         }
 
-        // 先删数据库，再删缓存
-        // 获取用户名
-        String username = requestParam.getUsername();
-        // 删除数据库中可复用的用户名数据
-        userReuseMapper.delete(Wrappers.update(
-                UserReuseDO.builder()
-                        .username(username)
-                        .build())
-        );
-
-        // 在可复用的用户名的集合中删除
-        StringRedisTemplate instance = (StringRedisTemplate) distributedCache.getInstance();
-        instance.opsForSet().remove(USER_REGISTER_REUSE_SHARDING + UserReuseUtil.hashShardingIdx(username), username);
-
-        // 在布隆过滤器中添加
-        userRegisterCachePenetrationBloomFilter.add(username);
         return BeanUtil.convert(requestParam, UserRegisterRespDTO.class);
     }
 
