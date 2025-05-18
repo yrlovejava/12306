@@ -46,6 +46,11 @@ public final class RedisKeyConstant {
     public static final String TRAIN_STATION_STOPOVER_DETAIL = "index12306-ticket-service:train_station_stopover_detail:";
 
     /**
+     * 列车购买令牌桶，Key Prefix + 列车ID
+     */
+    public static final String TICKET_AVAILABILITY_TOKEN_BUCKET = "index12306-ticket-service:ticket_availability_token_bucket:";
+
+    /**
      * 列车站点缓存
      */
     public static final String STATION_ALL = "index12306-ticket-service:all_station";
@@ -79,4 +84,9 @@ public final class RedisKeyConstant {
      * 获取相邻座位余票分布式锁 Key
      */
     public static final String LOCK_SAFE_LOAD_SEAT_MARGIN_GET = "index12306-ticket-service:lock:safe_load_seat_margin_%s";
+
+    /**
+     * 列车购买令牌桶加载数据 key
+     */
+    public static final String LOCK_TICKET_AVAILABILITY_TOKEN_BUCKET = "index12306-ticket-service:lock:ticket_availability_token_bucket_%s";
 }

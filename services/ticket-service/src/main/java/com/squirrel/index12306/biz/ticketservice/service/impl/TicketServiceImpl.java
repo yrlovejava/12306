@@ -24,6 +24,7 @@ import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderCreateRem
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
 import com.squirrel.index12306.biz.ticketservice.service.cache.SeatMarginCacheLoader;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.TicketAvailabilityTokenBucket;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select.TrainSeatTypeSelector;
 import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
@@ -75,6 +76,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
     private final AbstractChainContext<PurchaseTicketReqDTO> purchaseTicketAbstractChainContext;
     private final Environment environment;
     private final RedissonClient redissonClient;
+    private final TicketAvailabilityTokenBucket ticketAvailabilityTokenBucket;
 
     /**
      * 根据条件查询车票
@@ -241,9 +243,55 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
      */
     @Override
     @Transactional(rollbackFor = Throwable.class)
-    public TicketPurchaseRespDTO purchaseTickets(PurchaseTicketReqDTO requestParam) {
+    public TicketPurchaseRespDTO purchaseTicketsV1(PurchaseTicketReqDTO requestParam) {
         // 责任链模式，验证 0:参数必填 1:参数正确性 2:列车车次余量是否充足 3:乘客是否已买当前车次等
         purchaseTicketAbstractChainContext.handler(TicketChainMarkEnum.TRAIN_PURCHASE_TICKET_FILTER.name(), requestParam);
+
+        // 获取分布式锁
+        String lockKey = environment.resolvePlaceholders(String.format(LOCK_PURCHASE_TICKETS, requestParam.getTrainId()));
+        RLock lock = redissonClient.getLock(lockKey);
+        lock.lock();
+
+        try {
+            return executePurchaseTickets(requestParam);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * 购买车票V2接口
+     *
+     * @param requestParam 车票购买请求参数
+     * @return 订单号
+     */
+    @Override
+    @Transactional(rollbackFor = Throwable.class)
+    public TicketPurchaseRespDTO purchaseTicketsV2(PurchaseTicketReqDTO requestParam) {
+        // 责任链模式，验证 0:参数必填 1:参数正确性 2:列车车次余量是否充足 3:乘客是否已买当前车次等...
+        purchaseTicketAbstractChainContext.handler(TicketChainMarkEnum.TRAIN_PURCHASE_TICKET_FILTER.name(), requestParam);
+        // 去令牌桶中获取令牌
+        boolean tokenResult = ticketAvailabilityTokenBucket.takeTokenFromBucket(requestParam);
+        if(!tokenResult){
+            throw new ServiceException("列车站点无余票");
+        }
+        return executePurchaseTickets(requestParam);
+    }
+
+    /**
+     * 执行扣减车票
+     *
+     * @param requestParam 车票购买请求参数
+     * @return 订单号
+     */
+    @Override
+    @Transactional(rollbackFor = Throwable.class)
+    public TicketPurchaseRespDTO executePurchaseTickets(PurchaseTicketReqDTO requestParam) {
+        // 返回的结果
+        Result<String> ticketOrderResult;
+        // 订单详情集合
+        List<TicketOrderDetailRespDTO> ticketOrderDetailResults = new ArrayList<>();
+
         String trainId = requestParam.getTrainId();
         // 在 redis 中查询列车信息
         TrainDO trainDO = distributedCache.get(
@@ -253,119 +301,109 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
                 ADVANCE_TICKET_DAY,
                 TimeUnit.DAYS
         );
+        if (Objects.isNull(trainDO)) {
+            throw new ServiceException("列车不存在");
+        }
 
-        // 返回的结果
-        Result<String> ticketOrderResult;
-        // 订单详情集合
-        List<TicketOrderDetailRespDTO> ticketOrderDetailResults = new ArrayList<>();
-
-        // 获取分布式锁
-        String lockKey = environment.resolvePlaceholders(String.format(LOCK_PURCHASE_TICKETS, trainId));
-        RLock lock = redissonClient.getLock(lockKey);
-        lock.lock();
+        // 使用策略模式购票
+        List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults = trainSeatTypeSelector.select(trainDO.getTrainType(), requestParam);
+        // 批量插入车票到数据库
+        List<TicketDO> ticketDOList = trainPurchaseTicketResults.stream()
+                .map(each -> TicketDO.builder()
+                        .username(UserContext.getUsername()) // 用户名
+                        .trainId(Long.parseLong(requestParam.getTrainId())) // 列车id
+                        .carriageNumber(each.getCarriageNumber()) // 车厢号
+                        .seatNumber(each.getSeatNumber()) // 座位号
+                        .passengerId(each.getPassengerId()) // 乘车人id
+                        .ticketStatus(TicketStatusEnum.UNPAID.getCode()) // 车票的状态
+                        .build())
+                .toList();
+        // 批量保存
+        saveBatch(ticketDOList);
 
         try {
-            // 使用策略模式购票
-            List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults = trainSeatTypeSelector.select(trainDO.getTrainType(), requestParam);
-            // 批量插入车票到数据库
-            List<TicketDO> ticketDOList = trainPurchaseTicketResults.stream()
-                    .map(each -> TicketDO.builder()
-                            .username(UserContext.getUsername()) // 用户名
-                            .trainId(Long.parseLong(requestParam.getTrainId())) // 列车id
-                            .carriageNumber(each.getCarriageNumber()) // 车厢号
-                            .seatNumber(each.getSeatNumber()) // 座位号
-                            .passengerId(each.getPassengerId()) // 乘车人id
-                            .ticketStatus(TicketStatusEnum.UNPAID.getCode()) // 车票的状态
-                            .build())
-                    .toList();
-            // 批量保存
-            saveBatch(ticketDOList);
-
-            try {
-                // 订单创建参数集合
-                List<TicketOrderItemCreateRemoteReqDTO> orderItemCreateRemoteReqDTOList = new ArrayList<>();
-                trainPurchaseTicketResults.forEach(each -> {
-                    // 构造创建订单明细请求参数
-                    TicketOrderItemCreateRemoteReqDTO orderItemCreateRemoteReqDTO = TicketOrderItemCreateRemoteReqDTO.builder()
-                            .amount(each.getAmount())// 座位金额
-                            .carriageNumber(each.getCarriageNumber())// 车厢号
-                            .seatNumber(each.getSeatNumber())// 座位号
-                            .idCard(each.getIdCard())// 证件号
-                            .idType(each.getIdType())// 证件类型
-                            .phone(each.getPhone())// 手机号
-                            .realName(each.getRealName())// 真实姓名
-                            .build();
-                    // 构造订单明细返回参数
-                    TicketOrderDetailRespDTO ticketOrderDetailRespDTO = TicketOrderDetailRespDTO.builder()
-                            .amount(each.getAmount())// 座位金额
-                            .carriageNumber(each.getCarriageNumber())// 车厢号
-                            .seatNumber(each.getSeatNumber())// 座位号
-                            .idCard(each.getIdCard())// 证件号
-                            .idType(each.getIdType())// 证件类型
-                            .seatType(each.getSeatType())// 席别类型
-                            .ticketType(each.getUserType())// 车票类型0：成人 1：儿童 2：学生 3：残疾军人
-                            .realName(each.getRealName())// 真实姓名
-                            .build();
-                    // 加入订单创建请求列表中
-                    orderItemCreateRemoteReqDTOList.add(orderItemCreateRemoteReqDTO);
-                    // 加入订单明细返回结果中
-                    ticketOrderDetailResults.add(ticketOrderDetailRespDTO);
-                });
-
-                // 构造查询条件
-                LambdaQueryWrapper<TrainStationRelationDO> queryWrapper = Wrappers.lambdaQuery(TrainStationRelationDO.class)
-                        .eq(TrainStationRelationDO::getTrainId, trainId)
-                        .eq(TrainStationRelationDO::getDeparture, requestParam.getDeparture())
-                        .eq(TrainStationRelationDO::getArrival, requestParam.getArrival());
-                // 查询这趟列车站点关系
-                TrainStationRelationDO trainStationRelationDO = trainStationRelationMapper.selectOne(queryWrapper);
-
-                // 构造创建整个订单请求参数
-                TicketOrderCreateRemoteReqDTO orderCreateRemoteReqDTO = TicketOrderCreateRemoteReqDTO.builder()
-                        .departure(requestParam.getDeparture()) // 出发站
-                        .arrival(requestParam.getArrival()) // 到达站
-                        .orderTime(new Date()) // 创建订单时间
-                        .source(SourceEnum.INTERNET.getCode()) // 购票途径
-                        .trainNumber(trainDO.getTrainNumber()) // 列车车次
-                        .departureTime(trainStationRelationDO.getDepartureTime()) // 出发时间
-                        .arrivalTime(trainStationRelationDO.getArrivalTime()) // 到达时间
-                        .ridingDate(trainStationRelationDO.getDepartureTime()) // 乘车日期
-                        .userId(UserContext.getUserId()) // 创建订单用户id
-                        .username(UserContext.getUsername()) // 创建订单用户名
-                        .trainId(Long.parseLong(requestParam.getTrainId())) // 列车id
-                        .ticketOrderItems(orderItemCreateRemoteReqDTOList) // 车票订单创建参数集合
+            // 订单创建参数集合
+            List<TicketOrderItemCreateRemoteReqDTO> orderItemCreateRemoteReqDTOList = new ArrayList<>();
+            trainPurchaseTicketResults.forEach(each -> {
+                // 构造创建订单明细请求参数
+                TicketOrderItemCreateRemoteReqDTO orderItemCreateRemoteReqDTO = TicketOrderItemCreateRemoteReqDTO.builder()
+                        .amount(each.getAmount())// 座位金额
+                        .carriageNumber(each.getCarriageNumber())// 车厢号
+                        .seatNumber(each.getSeatNumber())// 座位号
+                        .idCard(each.getIdCard())// 证件号
+                        .idType(each.getIdType())// 证件类型
+                        .phone(each.getPhone())// 手机号
+                        .realName(each.getRealName())// 真实姓名
                         .build();
-                // 远程调用创建订单
-                ticketOrderResult = ticketOrderRemoteService.createTicketOrder(orderCreateRemoteReqDTO);
-                if (!ticketOrderResult.isSuccess() || StrUtil.isBlank(ticketOrderResult.getData())) {
-                    log.error("订单服务调用失败，返回结果：{}", ticketOrderResult.getMessage());
-                    throw new ServiceException("订单服务调用失败");
-                }
-            } catch (Throwable ex) {
-                log.error("远程调用订单服务创建错误，请求参数：{}", JSON.toJSONString(requestParam), ex);
-                throw ex;
-            }
-
-            try {
-                // 发送 RocketMQ 延时消息，指定时间后取消订单
-                DelayCloseOrderEvent delayCloseOrderEvent = DelayCloseOrderEvent.builder()
-                        .trainId(requestParam.getTrainId())
-                        .departure(requestParam.getDeparture())
-                        .arrival(requestParam.getArrival())
-                        .orderSn(ticketOrderResult.getData())
-                        .trainPurchaseTicketResults(trainPurchaseTicketResults)
+                // 构造订单明细返回参数
+                TicketOrderDetailRespDTO ticketOrderDetailRespDTO = TicketOrderDetailRespDTO.builder()
+                        .amount(each.getAmount())// 座位金额
+                        .carriageNumber(each.getCarriageNumber())// 车厢号
+                        .seatNumber(each.getSeatNumber())// 座位号
+                        .idCard(each.getIdCard())// 证件号
+                        .idType(each.getIdType())// 证件类型
+                        .seatType(each.getSeatType())// 席别类型
+                        .ticketType(each.getUserType())// 车票类型0：成人 1：儿童 2：学生 3：残疾军人
+                        .realName(each.getRealName())// 真实姓名
                         .build();
-                SendResult sendResult = delayCloseOrderSendProducer.sendMessage(delayCloseOrderEvent);
-                if (!Objects.equals(sendResult.getSendStatus(), SendStatus.SEND_OK)) {
-                    throw new ServiceException("投递延迟关闭订单消息队列失败");
-                }
-            } catch (Throwable ex) {
-                log.error("延迟关闭订单消息队列发送错误，请求参数：{}", JSON.toJSONString(requestParam), ex);
-                throw ex;
+                // 加入订单创建请求列表中
+                orderItemCreateRemoteReqDTOList.add(orderItemCreateRemoteReqDTO);
+                // 加入订单明细返回结果中
+                ticketOrderDetailResults.add(ticketOrderDetailRespDTO);
+            });
+
+            // 构造查询条件
+            LambdaQueryWrapper<TrainStationRelationDO> queryWrapper = Wrappers.lambdaQuery(TrainStationRelationDO.class)
+                    .eq(TrainStationRelationDO::getTrainId, trainId)
+                    .eq(TrainStationRelationDO::getDeparture, requestParam.getDeparture())
+                    .eq(TrainStationRelationDO::getArrival, requestParam.getArrival());
+            // 查询这趟列车站点关系
+            TrainStationRelationDO trainStationRelationDO = trainStationRelationMapper.selectOne(queryWrapper);
+
+            // 构造创建整个订单请求参数
+            TicketOrderCreateRemoteReqDTO orderCreateRemoteReqDTO = TicketOrderCreateRemoteReqDTO.builder()
+                    .departure(requestParam.getDeparture()) // 出发站
+                    .arrival(requestParam.getArrival()) // 到达站
+                    .orderTime(new Date()) // 创建订单时间
+                    .source(SourceEnum.INTERNET.getCode()) // 购票途径
+                    .trainNumber(trainDO.getTrainNumber()) // 列车车次
+                    .departureTime(trainStationRelationDO.getDepartureTime()) // 出发时间
+                    .arrivalTime(trainStationRelationDO.getArrivalTime()) // 到达时间
+                    .ridingDate(trainStationRelationDO.getDepartureTime()) // 乘车日期
+                    .userId(UserContext.getUserId()) // 创建订单用户id
+                    .username(UserContext.getUsername()) // 创建订单用户名
+                    .trainId(Long.parseLong(requestParam.getTrainId())) // 列车id
+                    .ticketOrderItems(orderItemCreateRemoteReqDTOList) // 车票订单创建参数集合
+                    .build();
+            // 远程调用创建订单
+            ticketOrderResult = ticketOrderRemoteService.createTicketOrder(orderCreateRemoteReqDTO);
+            if (!ticketOrderResult.isSuccess() || StrUtil.isBlank(ticketOrderResult.getData())) {
+                log.error("订单服务调用失败，返回结果：{}", ticketOrderResult.getMessage());
+                throw new ServiceException("订单服务调用失败");
             }
-        } finally {
-            lock.unlock();
+        } catch (Throwable ex) {
+            log.error("远程调用订单服务创建错误，请求参数：{}", JSON.toJSONString(requestParam), ex);
+            throw ex;
         }
+
+        try {
+            // 发送 RocketMQ 延时消息，指定时间后取消订单
+            DelayCloseOrderEvent delayCloseOrderEvent = DelayCloseOrderEvent.builder()
+                    .trainId(requestParam.getTrainId())
+                    .departure(requestParam.getDeparture())
+                    .arrival(requestParam.getArrival())
+                    .orderSn(ticketOrderResult.getData())
+                    .trainPurchaseTicketResults(trainPurchaseTicketResults)
+                    .build();
+            SendResult sendResult = delayCloseOrderSendProducer.sendMessage(delayCloseOrderEvent);
+            if (!Objects.equals(sendResult.getSendStatus(), SendStatus.SEND_OK)) {
+                throw new ServiceException("投递延迟关闭订单消息队列失败");
+            }
+        } catch (Throwable ex) {
+            log.error("延迟关闭订单消息队列发送错误，请求参数：{}", JSON.toJSONString(requestParam), ex);
+            throw ex;
+        }
+
         return new TicketPurchaseRespDTO(ticketOrderResult.getData(), ticketOrderDetailResults);
     }
 

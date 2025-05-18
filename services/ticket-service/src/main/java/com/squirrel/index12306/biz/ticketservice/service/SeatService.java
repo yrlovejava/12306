@@ -1,5 +1,7 @@
 package com.squirrel.index12306.biz.ticketservice.service;
 
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.TrainPurchaseTicketRespDTO;
 
 import java.util.List;
@@ -7,7 +9,7 @@ import java.util.List;
 /**
  * 座位接口层
  */
-public interface SeatService {
+public interface SeatService extends IService<SeatDO> {
 
     /**
      * 获取列车车厢中可用的座位集合

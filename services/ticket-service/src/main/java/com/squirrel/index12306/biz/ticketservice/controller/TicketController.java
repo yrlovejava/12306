@@ -44,7 +44,19 @@ public class TicketController {
     @Operation(description = "购买车票")
     @PostMapping("/api/ticket-service/ticket/purchase")
     public Result<TicketPurchaseRespDTO> purchaseTickets(@RequestBody PurchaseTicketReqDTO requestParam) {
-        return Results.success(ticketService.purchaseTickets(requestParam));
+        return Results.success(ticketService.purchaseTicketsV1(requestParam));
+    }
+
+    /**
+     * 购买车票V2接口
+     * @param requestParam 购买车票请求参数
+     * @return Result<TicketPurchaseRespDTO>
+     */
+    @ILog
+    @Operation(description = "购买车票V2接口")
+    @PostMapping("/api/ticket-service/ticket/purchase/v2")
+    public Result<TicketPurchaseRespDTO> purchaseTicketsV2(@RequestBody PurchaseTicketReqDTO requestParam) {
+        return Results.success(ticketService.purchaseTicketsV2(requestParam));
     }
 
     /**
