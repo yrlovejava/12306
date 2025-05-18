@@ -159,7 +159,7 @@ public class UserLoginServiceImpl implements UserLoginService {
             // 在可复用的用户名集合中去查询是否可用，如果存在就是可用
             return instance.opsForSet().isMember(USER_REGISTER_REUSE_SHARDING + UserReuseUtil.hashShardingIdx(username), username);
         }
-        return true;
+        return false;
     }
 
     /**
