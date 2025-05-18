@@ -10,6 +10,7 @@ import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractE
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
@@ -24,6 +25,7 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
 public abstract class AbstractTrainPurchaseTicketTemplate implements CommandLineRunner, IPurchaseTicket, AbstractExecuteStrategy<SelectSeatDTO, List<TrainPurchaseTicketRespDTO>> {
 
     private DistributedCache distributedCache;
+    private String ticketAvailabilityCacheUpdateType;
 
     /**
      * 执行策略，这里是购票策略
@@ -36,7 +38,7 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements CommandLine
         // 选择座位，有子类具体实现
         List<TrainPurchaseTicketRespDTO> actualResult = selectSeats(requestParam);
         // 扣减车厢余票缓存，扣减站点余票缓存
-        if(CollUtil.isNotEmpty(actualResult)){
+        if(CollUtil.isNotEmpty(actualResult) && StrUtil.equals(ticketAvailabilityCacheUpdateType, "binlog")){
             // 列车id
             String trainId = requestParam.getRequestParam().getTrainId();
             // 出发站
@@ -67,5 +69,7 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements CommandLine
     @Override
     public void run(String... args) throws Exception {
         distributedCache = ApplicationContextHolder.getBean(DistributedCache.class);
+        ConfigurableEnvironment configurableEnvironment = ApplicationContextHolder.getBean(ConfigurableEnvironment.class);
+        ticketAvailabilityCacheUpdateType = configurableEnvironment.getProperty("ticket-availability.cache-update.type", "");
     }
 }
