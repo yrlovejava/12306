@@ -38,7 +38,7 @@ public abstract class AbstractTrainPurchaseTicketTemplate implements CommandLine
         // 选择座位，有子类具体实现
         List<TrainPurchaseTicketRespDTO> actualResult = selectSeats(requestParam);
         // 扣减车厢余票缓存，扣减站点余票缓存
-        if(CollUtil.isNotEmpty(actualResult) && StrUtil.equals(ticketAvailabilityCacheUpdateType, "binlog")){
+        if(CollUtil.isNotEmpty(actualResult) && !StrUtil.equals(ticketAvailabilityCacheUpdateType, "binlog")){
             // 列车id
             String trainId = requestParam.getRequestParam().getTrainId();
             // 出发站
