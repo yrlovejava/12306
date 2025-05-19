@@ -83,7 +83,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
     private final RedissonClient redissonClient;
     private final TicketAvailabilityTokenBucket ticketAvailabilityTokenBucket;
 
-    @Value("${ticket-availability.cache-update.type:}")
+    @Value("${ticket.availability.cache-update.type:}")
     private String ticketAvailabilityCacheUpdateType;
 
     /**

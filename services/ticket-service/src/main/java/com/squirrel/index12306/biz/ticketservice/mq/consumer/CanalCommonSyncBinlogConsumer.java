@@ -29,7 +29,7 @@ public class CanalCommonSyncBinlogConsumer implements RocketMQListener<CanalBinl
 
     private final AbstractStrategyChoose abstractStrategyChoose;
 
-    @Value("${ticket-availability.cache-update.type:}")
+    @Value("${ticket.availability.cache-update.type:}")
     private String ticketAvailabilityCacheUpdateType;
 
     @Override

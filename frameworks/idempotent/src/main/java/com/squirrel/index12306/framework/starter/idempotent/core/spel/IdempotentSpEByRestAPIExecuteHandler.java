@@ -60,4 +60,18 @@ public class IdempotentSpEByRestAPIExecuteHandler extends AbstractIdempotentExec
             }
         }
     }
+
+    @Override
+    public void exceptionProcessing() {
+        RLock lock = null;
+        try {
+            // 从幂等上下文中拿到锁信息
+            lock = (RLock) IdempotentContext.getKey(LOCK);
+        } finally {
+            // 释放锁
+            if (lock != null) {
+                lock.unlock();
+            }
+        }
+    }
 }
