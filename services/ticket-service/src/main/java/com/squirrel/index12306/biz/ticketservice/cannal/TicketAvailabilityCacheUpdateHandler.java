@@ -1,51 +1,49 @@
-package com.squirrel.index12306.biz.ticketservice.mq.consumer;
+package com.squirrel.index12306.biz.ticketservice.cannal;
 
 import cn.hutool.core.collection.CollUtil;
-import com.squirrel.index12306.biz.ticketservice.common.constant.TicketRocketMQConstant;
+import cn.hutool.core.util.StrUtil;
+import com.squirrel.index12306.biz.ticketservice.common.enums.CanalExecuteStrategyMarkEnum;
+import com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum;
 import com.squirrel.index12306.biz.ticketservice.mq.event.CanalBinlogEvent;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
+import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractExecuteStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
-import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_STATION_REMAINING_TICKET;
 
 /**
- * 列车车票余量缓存更新消费端
+ * 座位表变更-列车车票余量缓存更新组件
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@RocketMQMessageListener(
-        topic = TicketRocketMQConstant.CANAL_COMMON_SYNC_TOPIC_KEY,
-        consumerGroup = TicketRocketMQConstant.CANAL_SYNC_COMMON_CG_KEY
-)
-public class TicketAvailabilityCacheUpdateConsumer implements RocketMQListener<CanalBinlogEvent> {
+public class TicketAvailabilityCacheUpdateHandler implements AbstractExecuteStrategy<CanalBinlogEvent, Void> {
 
     private final DistributedCache distributedCache;
 
     @Override
-    public void onMessage(CanalBinlogEvent message) {
-        // 1.参数校验
-        if(message.getIsDdl() || CollUtil.isEmpty(message.getOld()) || !Objects.equals("UPDATE",message.getType())){
-            // todo UPDATE 写为常量
-            return;
+    public void execute(CanalBinlogEvent message) {
+        List<Map<String,Object>> messageDataList = new ArrayList<>();
+        List<Map<String,Object>> actualOldDataList = new ArrayList<>();
+        for (int i = 0; i < message.getOld().size(); i++) {
+            Map<String, Object> oldDataMap = message.getOld().get(i);
+            if(oldDataMap.get("seat_status") != null && StrUtil.isNotBlank(oldDataMap.get("seat_status").toString())){
+                Map<String, Object> curDataMap = message.getData().get(i);
+                if(StrUtil.equalsAny(
+                        curDataMap.get("seat_status").toString(),
+                        String.valueOf(SeatStatusEnum.AVAILABLE.getCode()),
+                        String.valueOf(SeatStatusEnum.LOCKED.getCode())
+                )){
+                    actualOldDataList.add(oldDataMap);
+                    messageDataList.add(curDataMap);
+                }
+            }
         }
-
-        // 获取旧数据
-        List<Map<String, Object>> actualOldDataList = message.getOld().stream()
-                .filter(each -> each.get("seat_status") != null)
-                .toList();
-        // 获取变更数据
-        List<Map<String, Object>> messageDataList = message.getData();
 
         Map<String,Map<Integer,Integer>> cacheChangeKeyMap = new HashMap<>();
         for(int i = 0;i < messageDataList.size();i++){
@@ -67,5 +65,10 @@ public class TicketAvailabilityCacheUpdateConsumer implements RocketMQListener<C
         // 更新缓存中的余票
         StringRedisTemplate instance = (StringRedisTemplate) distributedCache.getInstance();
         cacheChangeKeyMap.forEach((cacheKey, cacheVal) -> cacheVal.forEach((seatType, num) -> instance.opsForHash().increment(cacheKey, String.valueOf(seatType), num)));
+    }
+
+    @Override
+    public String mark() {
+        return CanalExecuteStrategyMarkEnum.T_SEAT.getActualTable();
     }
 }
