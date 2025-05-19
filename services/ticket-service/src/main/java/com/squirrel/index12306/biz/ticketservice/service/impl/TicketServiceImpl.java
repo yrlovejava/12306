@@ -22,6 +22,8 @@ import com.squirrel.index12306.biz.ticketservice.remote.TicketOrderRemoteService
 import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderCreateRemoteReqDTO;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderItemCreateRemoteReqDTO;
+import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderPassengerDetailRespDTO;
+import com.squirrel.index12306.biz.ticketservice.service.SeatService;
 import com.squirrel.index12306.biz.ticketservice.service.TicketService;
 import com.squirrel.index12306.biz.ticketservice.service.cache.SeatMarginCacheLoader;
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.TicketAvailabilityTokenBucket;
@@ -29,6 +31,7 @@ import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.dto.Trai
 import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.select.TrainSeatTypeSelector;
 import com.squirrel.index12306.biz.ticketservice.toolkit.DateUtil;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
+import com.squirrel.index12306.framework.starter.common.toolkit.BeanUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.chain.AbstractChainContext;
@@ -40,6 +43,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -72,11 +76,15 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
     private final DelayCloseOrderSendProducer delayCloseOrderSendProducer;
     private final TrainSeatTypeSelector trainSeatTypeSelector;
     private final SeatMarginCacheLoader seatMarginCacheLoader;
+    private final SeatService seatService;
     private final AbstractChainContext<TicketPageQueryReqDTO> ticketPageQueryAbstractChainContext;
     private final AbstractChainContext<PurchaseTicketReqDTO> purchaseTicketAbstractChainContext;
     private final Environment environment;
     private final RedissonClient redissonClient;
     private final TicketAvailabilityTokenBucket ticketAvailabilityTokenBucket;
+
+    @Value("${ticket-availability.cache-update.type:}")
+    private String ticketAvailabilityCacheUpdateType;
 
     /**
      * 根据条件查询车票
@@ -196,7 +204,43 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
      */
     @Override
     public void cancelTicketOrder(CancelTicketOrderReqDTO requestParam) {
-        ticketOrderRemoteService.cancelTicketOrder(requestParam);
+        Result<Void> cancelOrderResult = ticketOrderRemoteService.cancelTicketOrder(requestParam);
+        if(cancelOrderResult.isSuccess() && !StrUtil.equals(ticketAvailabilityCacheUpdateType,"binlog")) {
+            // 查询订单
+            Result<com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderDetailRespDTO> ticketOrderDetailResult =
+                    ticketOrderRemoteService.queryTicketOrderByOrderSn(requestParam.getOrderSn());
+            com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderDetailRespDTO ticketOrderDetail = ticketOrderDetailResult.getData();
+            // 列车id
+            String trainId = String.valueOf(ticketOrderDetail.getTrainId());
+            // 出发站
+            String departure = ticketOrderDetail.getDeparture();
+            // 到达站
+            String arrival = ticketOrderDetail.getArrival();
+            // 乘客数据
+            List<TicketOrderPassengerDetailRespDTO> trainPurchaseTicketResults = ticketOrderDetail.getPassengerDetails();
+            try {
+                // 取消对座位的锁定
+                seatService.unlock(trainId,departure,arrival, BeanUtil.convert(trainPurchaseTicketResults,TrainPurchaseTicketRespDTO.class));
+            }catch (Throwable ex) {
+                log.error("[取消订单] 订单号:{} 回滚列车DB座位状态失败",requestParam.getOrderSn(),ex);
+                throw ex;
+            }
+            try {
+                // 缓存中数据的key后缀
+                String keySuffix = StrUtil.join("_", trainId, departure, arrival);
+                // 在缓存中增加座位数量
+                StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
+                Map<Integer, List<TicketOrderPassengerDetailRespDTO>> seatTypeMap = trainPurchaseTicketResults.stream()
+                        .collect(Collectors.groupingBy(TicketOrderPassengerDetailRespDTO::getSeatType));
+                seatTypeMap.forEach((seatType, seatTypeList) -> {
+                    stringRedisTemplate.opsForHash()
+                            .increment(TRAIN_STATION_REMAINING_TICKET + keySuffix, String.valueOf(seatType), seatTypeList.size());
+                });
+            }catch (Throwable ex){
+                log.error("[取消订单] 订单号:{} 回滚缓存座位余票失败",requestParam.getOrderSn(),ex);
+                throw ex;
+            }
+        }
     }
 
     /**
