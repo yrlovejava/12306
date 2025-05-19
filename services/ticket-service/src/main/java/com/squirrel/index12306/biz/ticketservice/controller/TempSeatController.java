@@ -11,6 +11,7 @@ import com.squirrel.index12306.biz.ticketservice.dao.mapper.CarriageMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainStationRelationMapper;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
+import com.squirrel.index12306.framework.starter.common.toolkit.ThreadUtil;
 import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.web.Results;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TICKET_AVAILABILITY_TOKEN_BUCKET;
 import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_STATION_REMAINING_TICKET;
 
 /**
@@ -45,6 +47,8 @@ public class TempSeatController {
         seatDO.setTrainId(Long.parseLong(trainId));
         seatDO.setSeatStatus(SeatStatusEnum.AVAILABLE.getCode());
         seatMapper.update(seatDO, Wrappers.lambdaUpdate());
+        ThreadUtil.sleep(5000);
+        StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
         // 查询列车站点关系
         List<TrainStationRelationDO> trainStationRelationDOList = trainStationRelationMapper.selectList(Wrappers.lambdaQuery(TrainStationRelationDO.class)
                 .eq(TrainStationRelationDO::getTrainId, trainId));
@@ -55,7 +59,6 @@ public class TempSeatController {
                 .select(CarriageDO::getCarriageType)
         );
         // 恢复redis中的各种车厢类型的余票
-        StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
         for (TrainStationRelationDO each : trainStationRelationDOList) {
             // 获取key后缀
             String keySuffix = StrUtil.join("_",each.getTrainId(),each.getDeparture(),each.getArrival());
@@ -70,6 +73,7 @@ public class TempSeatController {
                         String.valueOf(carriageDO.getSeatCount()));
             }
         }
+        stringRedisTemplate.delete(TICKET_AVAILABILITY_TOKEN_BUCKET + trainId);
         return Results.success();
     }
 }
