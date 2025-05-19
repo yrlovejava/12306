@@ -49,7 +49,6 @@ public class TicketController {
             key = "T(com.squirrel.index12306.frameworks.starter.user.core.UserContext).getUsername()",
             message = "正在执行下单流程，请稍后...",
             scene = IdempotentSceneEnum.RESTAPI,
-            keyTimeout = 10,
             type = IdempotentTypeEnum.SPEL
     )
     @PostMapping("/api/ticket-service/ticket/purchase")
@@ -69,7 +68,6 @@ public class TicketController {
             key = "T(com.squirrel.index12306.frameworks.starter.user.core.UserContext).getUsername()",
             message = "正在执行下单流程，请稍后...",
             scene = IdempotentSceneEnum.RESTAPI,
-            keyTimeout = 10,
             type = IdempotentTypeEnum.SPEL
     )
     @PostMapping("/api/ticket-service/ticket/purchase/v2")
