@@ -74,7 +74,8 @@ public class TrainPurchaseTicketParamVerifyChainHandler implements TrainPurchase
                 String.class,
                 () -> {
                     List<TrainStationDO> actualTrainStationList = trainStationMapper.selectList(Wrappers.lambdaQuery(TrainStationDO.class)
-                            .eq(TrainStationDO::getTrainId, requestParam.getTrainId()));
+                            .eq(TrainStationDO::getTrainId, requestParam.getTrainId())
+                            .select(TrainStationDO::getDeparture));
                     return CollUtil.isNotEmpty(actualTrainStationList) ? JSON.toJSONString(actualTrainStationList) : null;
                 },
                 ADVANCE_TICKET_DAY,
