@@ -37,7 +37,7 @@ public class PayResultCallbackOrderSendProduce extends AbstractCommonSendProduce
                 .eventName("支付回调订单")
                 .keys(messageSendEvent.getOrderSn())
                 .topic(PayRocketMQConstant.PAY_GLOBAL_TOPIC_KEY)
-                .tag(PayRocketMQConstant.PAY_RESULT_CALLBACK_ORDER_TAG_KEY)
+                .tag(PayRocketMQConstant.PAY_RESULT_CALLBACK_TAG_KEY)
                 .sentTimeout(2000L)
                 .build();
     }
