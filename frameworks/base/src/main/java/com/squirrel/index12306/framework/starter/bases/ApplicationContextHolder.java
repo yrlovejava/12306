@@ -41,6 +41,15 @@ public class ApplicationContextHolder implements ApplicationContextAware {
     }
 
     /**
+     * 根据名称获取 ioc 容器中的bean
+     * @param name bean名称
+     * @return bean
+     */
+    public static Object getBean(String name) {
+        return CONTEXT.getBean(name);
+    }
+
+    /**
      * 在 ioc 容器中获取指定类型的所有bean实例
      * @param clazz 类型
      * @return 所有bean实例
