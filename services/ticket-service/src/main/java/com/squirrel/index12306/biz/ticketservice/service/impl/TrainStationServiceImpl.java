@@ -57,4 +57,26 @@ public class TrainStationServiceImpl implements TrainStationService {
                 .toList();
         return StationCalculateUtil.throughStation(trainStationAllList,departure,arrival);
     }
+
+    /**
+     * 计算所有需要扣减的路线
+     * @param trainId 列车ID
+     * @param departure 出发站
+     * @param arrival 到达站
+     * @return 需要扣减的路线
+     */
+    @Override
+    public List<RouteDTO> listTakeoutTrainStationRoute(String trainId, String departure, String arrival) {
+        // 查询所有站点
+        List<TrainStationDO> trainStationDOList = trainStationMapper.selectList(Wrappers.lambdaQuery(TrainStationDO.class)
+                .eq(TrainStationDO::getTrainId, trainId)
+                .select(TrainStationDO::getDeparture)
+        );
+        // 解析站点信息
+        List<String> trainStationAllList = trainStationDOList.stream()
+                .map(TrainStationDO::getDeparture)
+                .toList();
+        // 计算所有需要扣减的路线
+        return StationCalculateUtil.takeoutStation(trainStationAllList,departure,arrival);
+    }
 }

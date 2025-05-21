@@ -28,4 +28,6 @@ public interface TrainStationService {
      * @return 列车站点路线关系信息
      */
     List<RouteDTO> listTrainStationRoute(String trainId, String departure, String arrival);
+
+    List<RouteDTO> listTakeoutTrainStationRoute(String trainId, String departure, String arrival);
 }

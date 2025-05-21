@@ -26,7 +26,7 @@ public final class StationCalculateUtil {
         }
         // A B C D -> A-B A-C A-D B-C B-D C-D
         for (int i = startIndex;i < endIndex;i++) {
-            for(int j = i+1;j < endIndex;j++){
+            for(int j = i+1;j <= endIndex;j++){
                 String currentStation = stations.get(i);
                 String nextStation = stations.get(j);
                 RouteDTO routeDTO = new RouteDTO(currentStation,nextStation);
@@ -72,5 +72,13 @@ public final class StationCalculateUtil {
             }
         }
         return takeoutStationList;
+    }
+
+    public static void main(String[] args) {
+        List<String> stations = List.of("A","B","C","D");
+        String startStation = "B";
+        String endStation = "D";
+        List<RouteDTO> routeDTOList = throughStation(stations, startStation, endStation);
+        System.out.println(routeDTOList);
     }
 }

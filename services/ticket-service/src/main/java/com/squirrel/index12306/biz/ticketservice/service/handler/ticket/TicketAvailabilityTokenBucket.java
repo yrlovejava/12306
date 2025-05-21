@@ -10,7 +10,9 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
+import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
+import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainMapper;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassengerDetailDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.SeatTypeCountDTO;
@@ -32,9 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.squirrel.index12306.biz.ticketservice.common.constant.Index12306Constant.ADVANCE_TICKET_DAY;
 import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TICKET_AVAILABILITY_TOKEN_BUCKET;
+import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_INFO;
 
 /**
  * 列车车票余量令牌桶，应对海量并发场景满足并行、限流以及防超卖等场景
@@ -45,9 +50,9 @@ public final class TicketAvailabilityTokenBucket {
 
     private final TrainStationService trainStationService;
     private final DistributedCache distributedCache;
-    private final SeatService seatService;
     private final RedissonClient redissonClient;
     private final SeatMapper seatMapper;
+    private final TrainMapper trainMapper;
 
     private static final String LUA_TICKET_AVAILABILITY_TOKEN_BUCKET_PATH = "lua/ticketAvailabilityTokenBucketLua.lua";
 
@@ -60,11 +65,20 @@ public final class TicketAvailabilityTokenBucket {
      * @return 是否获取列车车票余量令牌桶中的令牌，{@link Boolean#TRUE} 和 {@link Boolean#FALSE}
      */
     public boolean takeTokenFromBucket(PurchaseTicketReqDTO requestParam) {
+        // 从缓存中获取列车信息
+        TrainDO trainDO = distributedCache.safeGet(
+                TRAIN_INFO + requestParam.getTrainId(),
+                TrainDO.class,
+                () -> {
+                    // 从数据库中获取列车信息
+                    return trainMapper.selectById(requestParam.getTrainId());
+                },
+                ADVANCE_TICKET_DAY,
+                TimeUnit.DAYS);
+        // 查询所有路线
+        List<RouteDTO> routeDTOList = trainStationService.listTrainStationRoute(requestParam.getTrainId(), trainDO.getStartStation(), trainDO.getEndStation());
         // 当前列车的令牌桶
         String actualHashKey = TICKET_AVAILABILITY_TOKEN_BUCKET + requestParam.getTrainId();
-        // 查询所有路线
-        List<RouteDTO> routeDTOList = trainStationService.listTrainStationRoute(requestParam.getTrainId(), requestParam.getDeparture(), requestParam.getArrival());
-
         StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
         Boolean hasKey = distributedCache.hasKey(actualHashKey);
         if (!hasKey) {
@@ -112,6 +126,9 @@ public final class TicketAvailabilityTokenBucket {
                     return jsonObject;
                 })
                 .collect(Collectors.toCollection(JSONArray::new));
+        // 查询所有需要扣减的路线
+        List<RouteDTO> takeoutRouteDTOList = trainStationService
+                .listTakeoutTrainStationRoute(requestParam.getTrainId(), requestParam.getDeparture(), requestParam.getArrival());
         // 拼接lua脚本参数
         String luaScriptKey = StrUtil.join("_", requestParam.getDeparture(), requestParam.getArrival());
         Long result = stringRedisTemplate.execute(script, List.of(actualHashKey, luaScriptKey), JSON.toJSONString(seatTypeCountArray), JSON.toJSONString(routeDTOList));
