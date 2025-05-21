@@ -4,7 +4,9 @@ import cn.hutool.core.collection.ListUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.google.common.collect.Maps;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.RegionDO;
+import com.squirrel.index12306.biz.ticketservice.dao.entity.StationDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.RegionMapper;
+import com.squirrel.index12306.biz.ticketservice.dao.mapper.StationMapper;
 import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.convention.exception.ClientException;
@@ -41,6 +43,7 @@ public class TrainTicketQueryParamVerifyChainFilter implements TrainTicketQueryC
      * 默认没被初始化
      */
     private static boolean FLAG = false;
+    private final StationMapper stationMapper;
 
     @Override
     public void handler(TicketPageQueryReqDTO requestParam) {
@@ -89,8 +92,13 @@ public class TrainTicketQueryParamVerifyChainFilter implements TrainTicketQueryC
             // 代码到了这里表示确实没有，那么就从数据库中查询数据
             // 查询所有的地区
             List<RegionDO> regionDOList = regionMapper.selectList(Wrappers.emptyWrapper());
+            // 查询所有站点
+            List<StationDO> stationDOList = stationMapper.selectList(Wrappers.emptyWrapper());
             HashMap<Object, Object> regionValueMap = Maps.newHashMap();
             for (RegionDO each : regionDOList){
+                regionValueMap.put(each.getCode(),each.getName());
+            }
+            for (StationDO each : stationDOList){
                 regionValueMap.put(each.getCode(),each.getName());
             }
             // 加载缓存

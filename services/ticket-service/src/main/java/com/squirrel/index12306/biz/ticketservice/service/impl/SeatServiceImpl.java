@@ -125,8 +125,8 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, SeatDO> implements 
      */
     @Override
     public void lockSeat(String trainId, String departure, String arrival, List<TrainPurchaseTicketRespDTO> trainPurchaseTicketRespList) {
-        // 计算所有的路线
-        List<RouteDTO> routeList = trainStationService.listTrainStationRoute(trainId, departure, arrival);
+        // 计算所有需要扣减的座位
+        List<RouteDTO> routeList = trainStationService.listTakeoutTrainStationRoute(trainId, departure, arrival);
         // 锁定座位车票库存
         trainPurchaseTicketRespList.forEach(each -> routeList.forEach(item -> {
             LambdaUpdateWrapper<SeatDO> updateWrapper = Wrappers.lambdaUpdate(SeatDO.class)
@@ -150,8 +150,8 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, SeatDO> implements 
      */
     @Override
     public void unlock(String trainId, String departure, String arrival, List<TrainPurchaseTicketRespDTO> trainPurchaseTicketResults) {
-        // 计算所有的路线
-        List<RouteDTO> routeList = trainStationService.listTrainStationRoute(trainId, departure, arrival);
+        // 计算所有需要扣减的座位
+        List<RouteDTO> routeList = trainStationService.listTakeoutTrainStationRoute(trainId, departure, arrival);
         // 释放座位车票库存
         trainPurchaseTicketResults.forEach(each -> routeList.forEach(item -> {
             LambdaUpdateWrapper<SeatDO> updateWrapper = Wrappers.lambdaUpdate(SeatDO.class)
