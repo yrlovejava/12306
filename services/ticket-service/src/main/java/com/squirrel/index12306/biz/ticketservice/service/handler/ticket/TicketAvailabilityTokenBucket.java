@@ -1,15 +1,11 @@
 package com.squirrel.index12306.biz.ticketservice.service.handler.ticket;
 
-import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.squirrel.index12306.biz.ticketservice.common.enums.SeatStatusEnum;
+import com.google.common.collect.Lists;
 import com.squirrel.index12306.biz.ticketservice.common.enums.VehicleTypeEnum;
-import com.squirrel.index12306.biz.ticketservice.dao.entity.SeatDO;
 import com.squirrel.index12306.biz.ticketservice.dao.entity.TrainDO;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.SeatMapper;
 import com.squirrel.index12306.biz.ticketservice.dao.mapper.TrainMapper;
@@ -17,11 +13,14 @@ import com.squirrel.index12306.biz.ticketservice.dto.domain.PurchaseTicketPassen
 import com.squirrel.index12306.biz.ticketservice.dto.domain.RouteDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.domain.SeatTypeCountDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.req.PurchaseTicketReqDTO;
-import com.squirrel.index12306.biz.ticketservice.service.SeatService;
+import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderDetailRespDTO;
+import com.squirrel.index12306.biz.ticketservice.remote.dto.TicketOrderPassengerDetailRespDTO;
 import com.squirrel.index12306.biz.ticketservice.service.TrainStationService;
 import com.squirrel.index12306.framework.starter.bases.Singleton;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
+import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.core.io.ClassPathResource;
@@ -29,6 +28,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Component;
+import com.squirrel.index12306.framework.starter.common.toolkit.Assert;
 
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +44,7 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
 /**
  * 列车车票余量令牌桶，应对海量并发场景满足并行、限流以及防超卖等场景
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public final class TicketAvailabilityTokenBucket {
@@ -55,6 +56,7 @@ public final class TicketAvailabilityTokenBucket {
     private final TrainMapper trainMapper;
 
     private static final String LUA_TICKET_AVAILABILITY_TOKEN_BUCKET_PATH = "lua/ticket_availability_token_bucket.lua";
+    private static final String LUA_TICKET_AVAILABILITY_ROLLBACK_TOKEN_BUCKET_PATH = "lua/ticket_availability_rollback_token_bucket.lua";
 
     /**
      * 获取车站间令牌桶中的令牌访问
@@ -97,12 +99,12 @@ public final class TicketAvailabilityTokenBucket {
 
                         for (SeatTypeCountDTO each : seatTypeCountDTOList) {
                             String buildCacheKey = StrUtil.join("_", routeDTO.getStartStation(), routeDTO.getEndStation(), each.getSeatType());
-                            ticketAvailabilityTokenBucketMap.put(buildCacheKey,String.valueOf(each.getSeatCount()));
+                            ticketAvailabilityTokenBucketMap.put(buildCacheKey, String.valueOf(each.getSeatCount()));
                         }
                     }
                     stringRedisTemplate.opsForHash().putAll(TICKET_AVAILABILITY_TOKEN_BUCKET + requestParam.getTrainId(), ticketAvailabilityTokenBucketMap);
                 }
-            }finally {
+            } finally {
                 lock.unlock();
             }
         }
@@ -133,6 +135,50 @@ public final class TicketAvailabilityTokenBucket {
         String luaScriptKey = StrUtil.join("_", requestParam.getDeparture(), requestParam.getArrival());
         Long result = stringRedisTemplate.execute(script, List.of(actualHashKey, luaScriptKey), JSON.toJSONString(seatTypeCountArray), JSON.toJSONString(routeDTOList));
         return result != null && Objects.equals(result, 0L);
+    }
+
+    /**
+     * 回滚列车余量令牌，一般为订单取消或长时间按未支付触发
+     *
+     * @param requestParam 订单详细信息
+     */
+    public void rollbackInBucket(TicketOrderDetailRespDTO requestParam) {
+        // 单例获取 LUA 执行脚本
+        DefaultRedisScript<Long> actual = Singleton.get(LUA_TICKET_AVAILABILITY_ROLLBACK_TOKEN_BUCKET_PATH, () -> {
+            DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+            redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource(LUA_TICKET_AVAILABILITY_ROLLBACK_TOKEN_BUCKET_PATH)));
+            redisScript.setResultType(Long.class);
+            return redisScript;
+        });
+        Assert.notNull(actual);
+
+        // 拼接 LUA 脚本的参数
+        // 获取座位类型对应的数量
+        List<TicketOrderPassengerDetailRespDTO> passengerDetails = requestParam.getPassengerDetails();
+        Map<Integer, Long> seatTypeCountMap = passengerDetails.stream()
+                .collect(Collectors.groupingBy(TicketOrderPassengerDetailRespDTO::getSeatType, Collectors.counting()));
+        JSONArray seatTypeCountArray = seatTypeCountMap.entrySet().stream()
+                .map(entry -> {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("seatType", String.valueOf(entry.getKey()));
+                    jsonObject.put("count", String.valueOf(entry.getValue()));
+                    return jsonObject;
+                })
+                .collect(Collectors.toCollection(JSONArray::new));
+        // 获取 redisTemplate
+        StringRedisTemplate stringRedisTemplate = (StringRedisTemplate) distributedCache.getInstance();
+        // 拼接令牌桶 key
+        String actualHashKey = TICKET_AVAILABILITY_TOKEN_BUCKET + requestParam.getTrainId();
+        // 拼接 hashKey
+        String luaScriptKey = StrUtil.join("_", requestParam.getDeparture(), requestParam.getArrival());
+        // 查询所有需要扣减的路线
+        List<RouteDTO> takeoutRouteDTOList = trainStationService.
+                listTakeoutTrainStationRoute(String.valueOf(requestParam.getTrainId()), requestParam.getDeparture(), requestParam.getArrival());
+        Long result = stringRedisTemplate.execute(actual, Lists.newArrayList(actualHashKey, luaScriptKey), JSON.toJSONString(seatTypeCountArray), JSON.toJSONString(takeoutRouteDTOList));
+        if (result == null || !Objects.equals(result, 0L)) {
+            log.error("回滚列车余票令牌失败，订单信息：{}", JSON.toJSONString(requestParam));
+            throw new ServiceException("回滚列车余票令牌失败");
+        }
     }
 
     public void putTokenInBucket() {
