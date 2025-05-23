@@ -29,6 +29,12 @@ public class TicketOrderItemCreateReqDTO {
     private String seatNumber;
 
     /**
+     * 乘车人ID
+     */
+    @Schema(description = "乘车人ID")
+    private String passengerId;
+
+    /**
      * 真实姓名
      */
     @Schema(description = "真实姓名")

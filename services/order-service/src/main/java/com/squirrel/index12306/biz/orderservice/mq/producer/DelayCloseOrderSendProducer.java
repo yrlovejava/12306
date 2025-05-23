@@ -1,9 +1,10 @@
-package com.squirrel.index12306.biz.ticketservice.mq.producer;
+package com.squirrel.index12306.biz.orderservice.mq.producer;
 
 import cn.hutool.core.util.StrUtil;
-import com.squirrel.index12306.biz.ticketservice.common.constant.TicketRocketMQConstant;
-import com.squirrel.index12306.biz.ticketservice.mq.domain.MessageWrapper;
-import com.squirrel.index12306.biz.ticketservice.mq.event.DelayCloseOrderEvent;
+import com.squirrel.index12306.biz.orderservice.mq.event.BaseSendExtendDTO;
+import com.squirrel.index12306.biz.orderservice.mq.event.DelayCloseOrderEvent;
+import  com.squirrel.index12306.biz.orderservice.common.constant.OrderRocketMQConstant;
+import  com.squirrel.index12306.biz.orderservice.mq.domain.MessageWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -34,8 +35,8 @@ public class DelayCloseOrderSendProducer extends AbstractCommonSendProduceTempla
         return BaseSendExtendDTO.builder()
                 .eventName("延迟关闭订单")
                 .keys(messageSendEvent.getOrderSn())
-                .topic(environment.resolvePlaceholders(TicketRocketMQConstant.TICKET_CREATE_TOPIC_KEY))
-                .tag(environment.resolvePlaceholders(TicketRocketMQConstant.TICKET_DELAY_CLOSE_TAG_KEY))
+                .topic(environment.resolvePlaceholders(OrderRocketMQConstant.ORDER_DELAY_CLOSE_TOPIC_KEY))
+                .tag(environment.resolvePlaceholders(OrderRocketMQConstant.ORDER_DELAY_CLOSE_TAG_KEY))
                 .sentTimeout(2000L)
                 // RocketMQ 延迟消息级别 1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
                 .delayLevel(14)

@@ -15,8 +15,6 @@ import com.squirrel.index12306.biz.ticketservice.dto.req.TicketPageQueryReqDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketOrderDetailRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPageQueryRespDTO;
 import com.squirrel.index12306.biz.ticketservice.dto.resp.TicketPurchaseRespDTO;
-import com.squirrel.index12306.biz.ticketservice.mq.event.DelayCloseOrderEvent;
-import com.squirrel.index12306.biz.ticketservice.mq.producer.DelayCloseOrderSendProducer;
 import com.squirrel.index12306.biz.ticketservice.remote.PayRemoteService;
 import com.squirrel.index12306.biz.ticketservice.remote.TicketOrderRemoteService;
 import com.squirrel.index12306.biz.ticketservice.remote.dto.PayInfoRespDTO;
@@ -37,8 +35,6 @@ import com.squirrel.index12306.framework.starter.convention.result.Result;
 import com.squirrel.index12306.framework.starter.designpattern.chain.AbstractChainContext;
 import com.squirrel.index12306.frameworks.starter.user.core.UserContext;
 import lombok.RequiredArgsConstructor;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.SendStatus;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -73,7 +69,6 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
     private final TicketOrderRemoteService ticketOrderRemoteService;
     private final PayRemoteService payRemoteService;
     private final StationMapper stationMapper;
-    private final DelayCloseOrderSendProducer delayCloseOrderSendProducer;
     private final TrainSeatTypeSelector trainSeatTypeSelector;
     private final SeatMarginCacheLoader seatMarginCacheLoader;
     private final SeatService seatService;
@@ -427,24 +422,6 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, TicketDO> imple
             }
         } catch (Throwable ex) {
             log.error("远程调用订单服务创建错误，请求参数：{}", JSON.toJSONString(requestParam), ex);
-            throw ex;
-        }
-
-        try {
-            // 发送 RocketMQ 延时消息，指定时间后取消订单
-            DelayCloseOrderEvent delayCloseOrderEvent = DelayCloseOrderEvent.builder()
-                    .trainId(requestParam.getTrainId())
-                    .departure(requestParam.getDeparture())
-                    .arrival(requestParam.getArrival())
-                    .orderSn(ticketOrderResult.getData())
-                    .trainPurchaseTicketResults(trainPurchaseTicketResults)
-                    .build();
-            SendResult sendResult = delayCloseOrderSendProducer.sendMessage(delayCloseOrderEvent);
-            if (!Objects.equals(sendResult.getSendStatus(), SendStatus.SEND_OK)) {
-                throw new ServiceException("投递延迟关闭订单消息队列失败");
-            }
-        } catch (Throwable ex) {
-            log.error("延迟关闭订单消息队列发送错误，请求参数：{}", JSON.toJSONString(requestParam), ex);
             throw ex;
         }
 

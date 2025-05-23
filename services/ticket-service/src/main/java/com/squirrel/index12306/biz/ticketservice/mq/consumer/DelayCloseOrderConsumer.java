@@ -32,8 +32,8 @@ import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKey
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(
-        topic = TicketRocketMQConstant.TICKET_CREATE_TOPIC_KEY,// 订阅的主题
-        selectorExpression = TicketRocketMQConstant.TICKET_DELAY_CLOSE_TAG_KEY,// 消息标签过滤规则
+        topic = TicketRocketMQConstant.ORDER_DELAY_CLOSE_TOPIC_KEY,// 订阅的主题
+        selectorExpression = TicketRocketMQConstant.ORDER_DELAY_CLOSE_TAG_KEY,// 消息标签过滤规则
         consumerGroup = TicketRocketMQConstant.TICKET_DELAY_CLOSE_CG_KEY)// 消费者组
 public final class DelayCloseOrderConsumer implements RocketMQListener<MessageWrapper<DelayCloseOrderEvent>> {
 
