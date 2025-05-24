@@ -30,7 +30,7 @@ public final class CarriageVacantSeatCalculateUtil {
                 // 查找连续空余座位，seatList代表连续空余座位的集合
                 List<Pair<Integer, Integer>> seatList = new ArrayList<>();
                 int k = j;
-                for(;k < 3;k++){
+                for(;k < m;k++){
                     if(actualSeats[i][k] == 1){
                         break;
                     }
