@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.ticketservice.toolkit.base;
+package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base;
 
 /**
  * 高铁验证座位接口

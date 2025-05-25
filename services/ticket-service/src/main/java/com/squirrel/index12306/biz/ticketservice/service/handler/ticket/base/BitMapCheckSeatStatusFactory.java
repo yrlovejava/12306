@@ -1,4 +1,4 @@
-package com.squirrel.index12306.biz.ticketservice.toolkit.base;
+package com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base;
 
 import com.squirrel.index12306.framework.starter.bases.Singleton;
 

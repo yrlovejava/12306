@@ -16,8 +16,8 @@ import com.squirrel.index12306.biz.ticketservice.toolkit.CarriageVacantSeatCalcu
 import com.squirrel.index12306.biz.ticketservice.toolkit.ChooseSeatUtil;
 import com.squirrel.index12306.biz.ticketservice.toolkit.SeatNumberUtil;
 import com.squirrel.index12306.biz.ticketservice.toolkit.SurplusNeedMatchSeatUtil;
-import com.squirrel.index12306.biz.ticketservice.toolkit.base.BitMapCheckSeat;
-import com.squirrel.index12306.biz.ticketservice.toolkit.base.BitMapCheckSeatStatusFactory;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.BitMapCheckSeat;
+import com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.BitMapCheckSeatStatusFactory;
 import com.squirrel.index12306.framework.starter.cache.DistributedCache;
 import com.squirrel.index12306.framework.starter.cache.toolkit.CacheUtil;
 import com.squirrel.index12306.framework.starter.convention.exception.ServiceException;
@@ -27,10 +27,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static com.squirrel.index12306.biz.ticketservice.common.constant.RedisKeyConstant.TRAIN_CARRIAGE_SEAT_STATUS;
-import static com.squirrel.index12306.biz.ticketservice.toolkit.base.BitMapCheckSeatStatusFactory.TRAIN_BUSINESS;
+import static com.squirrel.index12306.biz.ticketservice.service.handler.ticket.base.BitMapCheckSeatStatusFactory.TRAIN_BUSINESS;
 
 /**
  * 高铁商务座购票组件
