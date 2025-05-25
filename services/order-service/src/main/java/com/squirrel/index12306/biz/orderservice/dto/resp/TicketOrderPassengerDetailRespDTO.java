@@ -1,5 +1,7 @@
 package com.squirrel.index12306.biz.orderservice.dto.resp;
 
+import cn.crane4j.annotation.AssembleEnum;
+import com.squirrel.index12306.biz.orderservice.common.enums.OrderItemStatusEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -62,5 +64,12 @@ public class TicketOrderPassengerDetailRespDTO {
      * 车票状态
      */
     @Schema(description = "车票状态")
+    @AssembleEnum(type = OrderItemStatusEnum.class,ref = "statusName")
     private Integer status;
+
+    /**
+     * 车票状态名称
+     */
+    @Schema(description = "车票状态名称")
+    private String statusName;
 }

@@ -1,5 +1,6 @@
 package com.squirrel.index12306.biz.aggregationservice;
 
+import cn.crane4j.spring.boot.annotation.EnableCrane4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -23,6 +24,7 @@ import org.springframework.retry.annotation.EnableRetry;
 })
 @EnableRetry
 @EnableFeignClients("com.squirrel.index12306.biz.ticketservice.remote")
+@EnableCrane4j(enumPackages = "com.squirrel.index12306.biz.orderservice.common.enums")
 public class AggregationServiceApplication {
 
     public static void main(String[] args) {

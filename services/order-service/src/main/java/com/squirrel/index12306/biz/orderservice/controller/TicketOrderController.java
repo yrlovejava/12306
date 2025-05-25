@@ -1,5 +1,6 @@
 package com.squirrel.index12306.biz.orderservice.controller;
 
+import cn.crane4j.annotation.AutoOperate;
 import com.squirrel.index12306.biz.orderservice.dto.req.CancelTicketOrderReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderCreateReqDTO;
 import com.squirrel.index12306.biz.orderservice.dto.req.TicketOrderPageQueryReqDTO;
@@ -49,6 +50,7 @@ public class TicketOrderController {
     /**
      * 分页查询本人车票订单
      */
+    @AutoOperate(type = TicketOrderDetailRespDTO.class,on = "data.records")
     @Operation(summary = "分页查询本人车票订单")
     @GetMapping("/api/order-service/order/ticket/self/page")
     public Result<PageResponse<TicketOrderDetailSelfRespDTO>> pageSelfTicketOrder(TicketOrderSelfPageQueryReqDTO requestParam) {
