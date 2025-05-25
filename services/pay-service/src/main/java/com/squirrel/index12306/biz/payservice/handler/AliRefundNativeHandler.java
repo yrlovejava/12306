@@ -24,7 +24,8 @@ import com.squirrel.index12306.framework.starter.designpattern.stategy.AbstractE
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -33,7 +34,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public final class AliRefundNativeHandler extends AbstractRefundHandler implements AbstractExecuteStrategy<RefundRequest, RefundResponse> {
+public class AliRefundNativeHandler extends AbstractRefundHandler implements AbstractExecuteStrategy<RefundRequest, RefundResponse> {
 
     private final AliPayProperties aliPayProperties;
 
@@ -43,6 +44,11 @@ public final class AliRefundNativeHandler extends AbstractRefundHandler implemen
 
     @SneakyThrows(value = AlipayApiException.class)
     @Override
+    @Retryable(
+            retryFor = {ServiceException.class},
+            maxAttempts = 3,// 最大重试次数
+            backoff = @Backoff(delay = 1000, multiplier = 1.5) // 第一次重试前延迟为1000ms，每次重试延迟时间是上一次的 1.5 倍
+    )
     public RefundResponse refund(RefundRequest payRequest) {
         // 获取支付宝退款请求参数
         AliRefundRequest aliRefundRequest = payRequest.getAliRefundRequest();
@@ -70,7 +76,7 @@ public final class AliRefundNativeHandler extends AbstractRefundHandler implemen
             return RefundResponse.builder()
                     .status(TradeStatusEnum.TRADE_CLOSED.tradeCode())
                     .build();
-        }catch (AlipayApiException e){
+        } catch (AlipayApiException e) {
             log.error("支付宝退款异常", e);
             throw new ServiceException("支付宝退款异常");
         }

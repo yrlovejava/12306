@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -31,11 +33,9 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public final class AliPayNativeHandler extends AbstractPayHandler implements AbstractExecuteStrategy<PayRequest, PayResponse> {
+public class AliPayNativeHandler extends AbstractPayHandler implements AbstractExecuteStrategy<PayRequest, PayResponse> {
 
     private final AliPayProperties aliPayProperties;
-
-    private final static String SUCCESS_CODE = "10000";
 
     /**
      * 阿里支付
@@ -45,6 +45,11 @@ public final class AliPayNativeHandler extends AbstractPayHandler implements Abs
      */
     @SneakyThrows(value = AlipayApiException.class)
     @Override
+    @Retryable(
+            retryFor = {ServiceException.class},
+            maxAttempts = 3,// 最大重试次数
+            backoff = @Backoff(delay = 1000, multiplier = 1.5) // 第一次重试前延迟为1000ms，每次重试延迟时间是上一次的 1.5 倍
+    )
     public PayResponse pay(PayRequest payRequest) {
         AliPayRequest aliPayRequest = payRequest.getAliPayRequest();
         AlipayConfig alipayConfig = BeanUtil.convert(aliPayProperties, AlipayConfig.class);
@@ -80,7 +85,7 @@ public final class AliPayNativeHandler extends AbstractPayHandler implements Abs
                 throw new ServiceException("调用支付宝发起支付异常");
             }
             return new PayResponse(StrUtil.replace(StrUtil.replace(response.getBody(), "\"", "'"), "\n", ""));
-        }catch (AlipayApiException ex){
+        } catch (AlipayApiException ex) {
             throw new ServiceException("调用支付宝支付异常");
         }
     }
@@ -96,6 +101,7 @@ public final class AliPayNativeHandler extends AbstractPayHandler implements Abs
 
     /**
      * 执行策略
+     *
      * @param requestParam 执行策略入参
      * @return 支付结果
      */
